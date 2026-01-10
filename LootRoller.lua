@@ -27,6 +27,9 @@ end
 function LootRoller:OnPlayerLogin()
     -- Register detection events after login
     LootRoller.Detection:RegisterEvents()
+
+    -- Pre-create options panel for Interface Options
+    LootRoller.Options:CreateOptionsPanel()
 end
 
 function LootRoller:Print(msg)
