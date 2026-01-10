@@ -136,3 +136,214 @@ function LootRoller.UI:RestoreFramePosition(frame)
         frame:SetPoint(pos.point, pos.x, pos.y)
     end
 end
+
+function LootRoller.UI:ShowItem(itemLink)
+    if not LootRoller.Settings:Get("enabled") then return end
+
+    local name, link, quality, _, _, itemType, itemSubType, _, equipLoc, texture = GetItemInfo(itemLink)
+
+    -- Handle item not cached
+    if not name then
+        LootRoller:Debug("Item not cached, retrying...")
+        -- Retry after short delay
+        local retryFrame = CreateFrame("Frame")
+        retryFrame.elapsed = 0
+        retryFrame.itemLink = itemLink
+        retryFrame:SetScript("OnUpdate", function()
+            this.elapsed = this.elapsed + arg1
+            if this.elapsed > 1.5 then
+                LootRoller.UI:ShowItem(this.itemLink)
+                this:SetScript("OnUpdate", nil)
+            end
+        end)
+        return
+    end
+
+    -- Handle multi-item mode
+    local mode = LootRoller.Settings:Get("multiItemMode")
+    local popup
+
+    if mode == "replace" then
+        -- Close existing popups
+        for _, p in ipairs(activePopups) do
+            p:Hide()
+        end
+        activePopups = {}
+        popup = self:GetOrCreatePopup()
+    else -- stack
+        if table.getn(activePopups) >= MAX_STACKED_POPUPS then
+            -- Remove oldest
+            local oldest = table.remove(activePopups, 1)
+            oldest:Hide()
+        end
+        popup = self:GetOrCreatePopup()
+    end
+
+    -- Store item data on frame
+    popup.itemLink = itemLink
+    popup.itemName:SetText(name)
+
+    -- Set quality color
+    local qc = QUALITY_COLORS[quality] or QUALITY_COLORS[1]
+    popup.itemName:SetTextColor(qc[1], qc[2], qc[3])
+
+    -- Set icon
+    popup.icon:SetTexture(texture)
+
+    -- Set subtext
+    popup.itemSubtext:SetText(itemType .. " - " .. (itemSubType or ""))
+
+    -- Calculate and display stat comparisons
+    local comparisons = LootRoller.Comparison:CompareItems(itemLink)
+    self:DisplayStats(popup, comparisons)
+
+    -- Position for stacking
+    self:PositionPopup(popup)
+
+    -- Restore saved position (only first popup)
+    if table.getn(activePopups) == 0 then
+        self:RestoreFramePosition(popup)
+    end
+
+    table.insert(activePopups, popup)
+    popup:Show()
+
+    -- Play sound if enabled
+    if LootRoller.Settings:Get("soundEnabled") then
+        PlaySound("igMainMenuOpen")
+    end
+
+    -- Start auto-hide timer if configured
+    local timeout = LootRoller.Settings:Get("autoHideTimeout")
+    if timeout and timeout > 0 then
+        self:StartAutoHideTimer(popup, timeout)
+    end
+end
+
+function LootRoller.UI:GetOrCreatePopup()
+    -- Reuse hidden popup or create new
+    for _, popup in ipairs(activePopups) do
+        if not popup:IsShown() then
+            return popup
+        end
+    end
+    return self:CreatePopupFrame()
+end
+
+function LootRoller.UI:PositionPopup(popup)
+    local numActive = table.getn(activePopups)
+    if numActive > 0 then
+        local lastPopup = activePopups[numActive]
+        popup:ClearAllPoints()
+        popup:SetPoint("TOP", lastPopup, "BOTTOM", 0, -10)
+    end
+end
+
+function LootRoller.UI:DisplayStats(popup, comparisons)
+    -- Clear existing stat lines
+    if popup.statLines then
+        for _, line in ipairs(popup.statLines) do
+            line:Hide()
+        end
+    end
+    popup.statLines = {}
+
+    local yOffset = 0
+    local columnWidth = 130
+
+    for i, comparison in ipairs(comparisons) do
+        -- Column header (vs Equipped 1, vs Equipped 2, or vs Empty)
+        local headerText
+        if comparison.isEmpty then
+            headerText = "vs Empty Slot"
+        elseif table.getn(comparisons) > 1 then
+            headerText = "vs Slot " .. i
+        else
+            headerText = "vs Equipped"
+        end
+
+        local xOffset = (i - 1) * columnWidth
+
+        local header = popup.statFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        header:SetPoint("TOPLEFT", xOffset, yOffset)
+        header:SetText(headerText)
+        header:SetTextColor(1, 0.82, 0)
+        table.insert(popup.statLines, header)
+
+        yOffset = yOffset - 14
+
+        -- Stat diff lines
+        for _, statDiff in ipairs(comparison.diff) do
+            local line = popup.statFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            line:SetPoint("TOPLEFT", xOffset, yOffset)
+
+            local prefix = statDiff.value > 0 and "+" or ""
+            line:SetText(prefix .. statDiff.value .. " " .. statDiff.stat)
+
+            if statDiff.isGain then
+                line:SetTextColor(COLOR_GAIN[1], COLOR_GAIN[2], COLOR_GAIN[3])
+            else
+                line:SetTextColor(COLOR_LOSS[1], COLOR_LOSS[2], COLOR_LOSS[3])
+            end
+
+            table.insert(popup.statLines, line)
+            yOffset = yOffset - 12
+        end
+
+        -- Reset yOffset for next column
+        if i < table.getn(comparisons) then
+            yOffset = 0
+        end
+    end
+
+    -- Adjust frame height based on content
+    local contentHeight = math.max(80, -yOffset + 20)
+    popup:SetHeight(contentHeight + 110)  -- add space for header and buttons
+end
+
+function LootRoller.UI:StartAutoHideTimer(popup, seconds)
+    if popup.autoHideTimer then
+        popup.autoHideTimer:SetScript("OnUpdate", nil)
+    end
+
+    local timer = CreateFrame("Frame")
+    timer.elapsed = 0
+    timer.duration = seconds
+    timer.popup = popup
+    timer:SetScript("OnUpdate", function()
+        this.elapsed = this.elapsed + arg1
+        if this.elapsed >= this.duration then
+            LootRoller.UI:HidePopup(this.popup)
+            this:SetScript("OnUpdate", nil)
+        end
+    end)
+    popup.autoHideTimer = timer
+end
+
+function LootRoller.UI:HidePopup(popup)
+    popup:Hide()
+
+    -- Remove from active list
+    for i, p in ipairs(activePopups) do
+        if p == popup then
+            table.remove(activePopups, i)
+            break
+        end
+    end
+
+    -- Cancel auto-hide timer
+    if popup.autoHideTimer then
+        popup.autoHideTimer:SetScript("OnUpdate", nil)
+        popup.autoHideTimer = nil
+    end
+end
+
+function LootRoller.UI:HideAllPopups()
+    for _, popup in ipairs(activePopups) do
+        popup:Hide()
+        if popup.autoHideTimer then
+            popup.autoHideTimer:SetScript("OnUpdate", nil)
+        end
+    end
+    activePopups = {}
+end
