@@ -111,6 +111,8 @@ function LootRoller.UI:CreatePopupFrame()
     tmogBtn:SetPoint("RIGHT", 0, 0)
     frame.tmogBtn = tmogBtn
 
+    self:UpdateButtonTooltips(frame)
+
     frame:Hide()
     return frame
 end
@@ -346,4 +348,43 @@ function LootRoller.UI:HideAllPopups()
         end
     end
     activePopups = {}
+end
+
+function LootRoller.UI:DoRoll(popup, rollType)
+    local rollValue
+
+    if rollType == "ms" then
+        rollValue = LootRoller.Settings:Get("msRoll")
+    elseif rollType == "os" then
+        rollValue = LootRoller.Settings:Get("osRoll")
+    elseif rollType == "tmog" then
+        rollValue = LootRoller.Settings:Get("tmogRoll")
+    end
+
+    if rollValue then
+        RandomRoll(1, rollValue)
+        LootRoller:Debug("Rolling 1-" .. rollValue .. " for " .. rollType)
+    end
+
+    -- Hide popup after rolling
+    self:HidePopup(popup)
+end
+
+-- Update button tooltips with current roll values
+function LootRoller.UI:UpdateButtonTooltips(popup)
+    local function SetTooltip(btn, rollType, rollValue)
+        btn:SetScript("OnEnter", function()
+            GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+            GameTooltip:SetText(rollType .. " Roll")
+            GameTooltip:AddLine("Roll 1-" .. rollValue, 1, 1, 1)
+            GameTooltip:Show()
+        end)
+        btn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+    end
+
+    SetTooltip(popup.msBtn, "Main Spec", LootRoller.Settings:Get("msRoll"))
+    SetTooltip(popup.osBtn, "Off Spec", LootRoller.Settings:Get("osRoll"))
+    SetTooltip(popup.tmogBtn, "Transmog", LootRoller.Settings:Get("tmogRoll"))
 end
