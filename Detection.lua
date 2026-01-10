@@ -126,7 +126,42 @@ cleanupFrame:SetScript("OnUpdate", function()
     end
 end)
 
+-- Known RollFor addon prefixes to listen for
+local ROLLFOR_PREFIXES = {
+    "RollFor",
+    "RF",
+}
+
 function LootRoller.Detection:ParseAddonMessage(prefix, message, channel, sender)
-    -- TODO: RollFor addon message integration
-    -- Need to identify RollFor's addon prefix
+    -- Check if this is from RollFor
+    local isRollFor = false
+    for _, rfPrefix in ipairs(ROLLFOR_PREFIXES) do
+        if prefix == rfPrefix then
+            isRollFor = true
+            break
+        end
+    end
+
+    if not isRollFor then return end
+
+    LootRoller:Debug("RollFor message: " .. (message or "nil") .. " from " .. (sender or "unknown"))
+
+    -- Try to parse item link from message
+    -- RollFor may send item links in various formats
+    local fullLink = string.match(message, "(|c%x+|Hitem:.+|h%[.-%]|h|r)")
+
+    if fullLink then
+        self:OnItemAnnounced(fullLink)
+    end
+end
+
+-- Enable/disable detection
+function LootRoller.Detection:SetEnabled(enabled)
+    if enabled then
+        self:RegisterEvents()
+    else
+        if self.frame then
+            self.frame:UnregisterAllEvents()
+        end
+    end
 end
