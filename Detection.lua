@@ -84,9 +84,47 @@ end
 
 function LootRoller.Detection:ParseRollResult(message)
     -- Pattern: "PlayerName rolls X (1-Y)"
-    -- Used to detect when a roll is resolved
-    -- TODO: Implement roll resolution detection
+    local playerName, roll, minRoll, maxRoll = string.match(message, "(.+) rolls (%d+) %((%d+)%-(%d+)%)")
+
+    if playerName and roll then
+        LootRoller:Debug("Roll detected: " .. playerName .. " rolled " .. roll .. " (1-" .. maxRoll .. ")")
+
+        -- Check if this could be a winning roll (loot master announces winner)
+        -- For now, we just track rolls. The popup auto-closes on new item or timeout.
+    end
 end
+
+-- Track current item being rolled on
+local currentItemId = nil
+
+function LootRoller.Detection:SetCurrentItem(itemId)
+    currentItemId = itemId
+end
+
+function LootRoller.Detection:GetCurrentItem()
+    return currentItemId
+end
+
+-- Clean up old dedupe entries periodically
+local function CleanupRecentItems()
+    local now = GetTime()
+    for itemId, timestamp in pairs(recentItems) do
+        if (now - timestamp) > DEDUPE_WINDOW * 2 then
+            recentItems[itemId] = nil
+        end
+    end
+end
+
+-- Run cleanup every 30 seconds
+local cleanupFrame = CreateFrame("Frame")
+cleanupFrame.elapsed = 0
+cleanupFrame:SetScript("OnUpdate", function()
+    this.elapsed = this.elapsed + arg1
+    if this.elapsed > 30 then
+        CleanupRecentItems()
+        this.elapsed = 0
+    end
+end)
 
 function LootRoller.Detection:ParseAddonMessage(prefix, message, channel, sender)
     -- TODO: RollFor addon message integration
