@@ -265,7 +265,7 @@ function LootRoller.UI:CreatePopupFrame()
     local divider = frame:CreateTexture(nil, "ARTWORK")
     divider:SetTexture(1, 1, 1, 0.3)
     divider:SetWidth(2)
-    divider:SetHeight(300)
+    divider:SetHeight(40)  -- Just for header area now
     divider:SetPoint("TOP", 0, -35)
     frame.divider = divider
 
@@ -293,17 +293,40 @@ function LootRoller.UI:CreatePopupFrame()
     rightName:SetJustifyH("LEFT")
     frame.rightName = rightName
 
-    local leftStats = CreateFrame("Frame", nil, frame)
-    leftStats:SetPoint("TOPLEFT", 20, -80)
-    leftStats:SetWidth(230)
-    leftStats:SetHeight(250)
+    -- Scroll frame for stat comparison
+    local scrollFrame = CreateFrame("ScrollFrame", frame:GetName() .. "ScrollFrame", frame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 15, -80)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -35, 50)
+    frame.scrollFrame = scrollFrame
+
+    -- Scroll child (content container)
+    local scrollChild = CreateFrame("Frame", frame:GetName() .. "ScrollChild", scrollFrame)
+    scrollChild:SetWidth(scrollFrame:GetWidth())
+    scrollChild:SetHeight(1) -- Will be set dynamically
+    scrollFrame:SetScrollChild(scrollChild)
+    frame.scrollChild = scrollChild
+
+    -- Left column container
+    local leftStats = CreateFrame("Frame", nil, scrollChild)
+    leftStats:SetPoint("TOPLEFT", 5, 0)
+    leftStats:SetWidth(220)
+    leftStats:SetHeight(1)
     frame.leftStats = leftStats
 
-    local rightStats = CreateFrame("Frame", nil, frame)
-    rightStats:SetPoint("TOPLEFT", divider, "TOPRIGHT", 15, -45)
-    rightStats:SetWidth(230)
-    rightStats:SetHeight(250)
+    -- Right column container
+    local rightStats = CreateFrame("Frame", nil, scrollChild)
+    rightStats:SetPoint("TOPLEFT", 245, 0)
+    rightStats:SetWidth(220)
+    rightStats:SetHeight(1)
     frame.rightStats = rightStats
+
+    -- Divider in scroll child
+    local scrollDivider = scrollChild:CreateTexture(nil, "ARTWORK")
+    scrollDivider:SetTexture(1, 1, 1, 0.3)
+    scrollDivider:SetWidth(1)
+    scrollDivider:SetPoint("TOPLEFT", 235, 0)
+    scrollDivider:SetPoint("BOTTOMLEFT", 235, 0)
+    frame.scrollDivider = scrollDivider
 
     local buttonFrame = CreateFrame("Frame", nil, frame)
     buttonFrame:SetPoint("BOTTOMLEFT", 15, 15)
