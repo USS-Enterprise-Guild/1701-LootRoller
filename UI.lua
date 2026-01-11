@@ -74,6 +74,62 @@ local function ClassifyLine(lineData)
     }
 end
 
+-- Align two tooltip line lists by stat type, inserting blanks as needed
+local function AlignTooltipLines(leftLines, rightLines)
+    local result = {}
+    local leftClassified = {}
+    local rightClassified = {}
+
+    -- Classify all lines
+    for _, line in ipairs(leftLines) do
+        table.insert(leftClassified, ClassifyLine(line))
+    end
+    for _, line in ipairs(rightLines) do
+        table.insert(rightClassified, ClassifyLine(line))
+    end
+
+    -- Track which right lines have been matched
+    local rightUsed = {}
+
+    -- Process left lines, finding matches in right
+    for i, leftLine in ipairs(leftClassified) do
+        local matched = false
+        if leftLine.statType then
+            -- Look for matching stat in right (unused)
+            for j, rightLine in ipairs(rightClassified) do
+                if not rightUsed[j] and rightLine.statType == leftLine.statType then
+                    table.insert(result, {left = leftLine, right = rightLine})
+                    rightUsed[j] = true
+                    matched = true
+                    break
+                end
+            end
+            if not matched then
+                -- Left has stat, right doesn't
+                table.insert(result, {left = leftLine, right = nil})
+            end
+        else
+            -- Non-stat line: pair with corresponding position if exists and not a stat
+            local rightLine = rightClassified[i]
+            if rightLine and not rightLine.statType and not rightUsed[i] then
+                table.insert(result, {left = leftLine, right = rightLine})
+                rightUsed[i] = true
+            else
+                table.insert(result, {left = leftLine, right = nil})
+            end
+        end
+    end
+
+    -- Add any unmatched right lines
+    for j, rightLine in ipairs(rightClassified) do
+        if not rightUsed[j] then
+            table.insert(result, {left = nil, right = rightLine})
+        end
+    end
+
+    return result
+end
+
 local scanTooltip = CreateFrame("GameTooltip", "LootRollerScanTooltip2", nil, "GameTooltipTemplate")
 scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
 
