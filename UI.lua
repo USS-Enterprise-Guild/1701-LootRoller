@@ -361,10 +361,22 @@ function LootRoller.UI:CreateRollButton(parent, text, onClick)
 end
 
 function LootRoller.UI:ClearStatLines(frame)
-    for _, line in ipairs(frame.leftLines or {}) do line:Hide() end
-    for _, line in ipairs(frame.rightLines or {}) do line:Hide() end
+    -- Hide and clear all line FontStrings
+    for _, line in ipairs(frame.leftLines or {}) do
+        line:Hide()
+        line:SetText("")
+    end
+    for _, line in ipairs(frame.rightLines or {}) do
+        line:Hide()
+        line:SetText("")
+    end
     frame.leftLines = {}
     frame.rightLines = {}
+
+    -- Reset scroll child height
+    if frame.scrollChild then
+        frame.scrollChild:SetHeight(1)
+    end
 end
 
 function LootRoller.UI:AddStatLine(container, lines, text, yOffset, color)
