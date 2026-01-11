@@ -35,14 +35,11 @@ SlashCmdList["LOOTROLLER"] = function(msg)
     end
 end
 
-function LootRoller.Options:ShowTestPopup()
-    -- Test with a known item (Perdition's Blade as example)
-    local testItemId = 18816  -- Perdition's Blade
-    local testLink = "|cffff8000|Hitem:18816:0:0:0|h[Perdition's Blade]|h|r"
 
-    -- Try to show the item
+
+function LootRoller.Options:ShowTestPopup()
     LootRoller:Print("Showing test popup...")
-    LootRoller.UI:ShowItem(testLink)
+    LootRoller.UI:ShowTestItem()
 end
 
 local optionsPanel = nil

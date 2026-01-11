@@ -1,129 +1,275 @@
 -- UI.lua
--- Popup frame and display
+-- Popup frame with side-by-side item comparison
 
 LootRoller.UI = {}
 
-local activePopups = {}  -- track active popups
+local activePopups = {}
 local MAX_STACKED_POPUPS = 4
 
--- Colors
-local COLOR_GAIN = {0, 1, 0}      -- green
-local COLOR_LOSS = {1, 0, 0}      -- red
-local COLOR_NEUTRAL = {0.5, 0.5, 0.5}  -- gray
+local COLOR_BETTER = {0.1, 1, 0.1}
+local COLOR_WORSE = {1, 0.1, 0.1}
+local COLOR_NEUTRAL = {1, 1, 1}
+local COLOR_HEADER = {1, 0.82, 0}
 
--- Quality colors (same as WoW item quality)
 local QUALITY_COLORS = {
-    [0] = {0.6, 0.6, 0.6},  -- Poor (gray)
-    [1] = {1, 1, 1},        -- Common (white)
-    [2] = {0.12, 1, 0},     -- Uncommon (green)
-    [3] = {0, 0.44, 0.87},  -- Rare (blue)
-    [4] = {0.64, 0.21, 0.93}, -- Epic (purple)
-    [5] = {1, 0.5, 0},      -- Legendary (orange)
+    [0] = {0.6, 0.6, 0.6},
+    [1] = {1, 1, 1},
+    [2] = {0.12, 1, 0},
+    [3] = {0, 0.44, 0.87},
+    [4] = {0.64, 0.21, 0.93},
+    [5] = {1, 0.5, 0},
 }
+
+local scanTooltip = CreateFrame("GameTooltip", "LootRollerScanTooltip2", nil, "GameTooltipTemplate")
+scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+
+local function GetItemId(itemLink)
+    if not itemLink then return nil end
+    local _, _, id = string.find(itemLink, "item:(%d+)")
+    return id and tonumber(id) or nil
+end
+
+local function ExtractHyperlink(itemLink)
+    if not itemLink then return nil end
+    local _, _, hyperlink = string.find(itemLink, "|H(item:%d+[^|]*)|h")
+    return hyperlink or itemLink
+end
+
+local function GetTooltipLines(itemLink)
+    if not itemLink then return {} end
+    local hyperlink = ExtractHyperlink(itemLink)
+    if not hyperlink then return {} end
+    scanTooltip:ClearLines()
+    scanTooltip:SetHyperlink(hyperlink)
+    local lines = {}
+    local numLines = scanTooltip:NumLines()
+    for i = 1, numLines do
+        local leftText = getglobal("LootRollerScanTooltip2TextLeft" .. i)
+        local rightText = getglobal("LootRollerScanTooltip2TextRight" .. i)
+        local left = leftText and leftText:GetText() or ""
+        local right = rightText and rightText:GetText() or ""
+        local r, g, b = 1, 1, 1
+        if leftText then r, g, b = leftText:GetTextColor() end
+        if left and left ~= "" then
+            table.insert(lines, {text = left, rightText = right, r = r, g = g, b = b})
+        end
+    end
+    return lines
+end
+
+local function ParseStatValue(text)
+    if not text then return nil end
+    local _, _, value = string.find(text, "%+(%d+)")
+    if value then return tonumber(value) end
+    local _, _, value2 = string.find(text, "(%d+)%%")
+    if value2 then return tonumber(value2) end
+    local _, _, value3 = string.find(text, "by (%d+)")
+    if value3 then return tonumber(value3) end
+    return nil
+end
+
+local function CompareStatLines(line1, line2)
+    local val1 = ParseStatValue(line1 or "")
+    local val2 = ParseStatValue(line2 or "")
+    if val1 and val2 then
+        if val1 > val2 then return COLOR_BETTER, COLOR_WORSE
+        elseif val1 < val2 then return COLOR_WORSE, COLOR_BETTER end
+    end
+    return COLOR_NEUTRAL, COLOR_NEUTRAL
+end
 
 function LootRoller.UI:CreatePopupFrame()
     local frame = CreateFrame("Frame", "LootRollerPopup" .. (table.getn(activePopups) + 1), UIParent)
-    frame:SetWidth(280)
-    frame:SetHeight(200)
+    frame:SetWidth(520)
+    frame:SetHeight(380)
     frame:SetPoint("CENTER", 0, 100)
     frame:SetFrameStrata("DIALOG")
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:SetClampedToScreen(true)
-
-    -- Background
     frame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        bgFile = "Interface\DialogFrame\UI-DialogBox-Background",
+        edgeFile = "Interface\DialogFrame\UI-DialogBox-Border",
         tile = true, tileSize = 32, edgeSize = 32,
         insets = {left = 11, right = 12, top = 12, bottom = 11}
     })
-
-    -- Make draggable
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function()
-        this:StartMoving()
-    end)
+    frame:SetScript("OnDragStart", function() this:StartMoving() end)
     frame:SetScript("OnDragStop", function()
         this:StopMovingOrSizing()
         LootRoller.UI:SaveFramePosition(this)
     end)
 
-    -- Close button
     local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     closeBtn:SetPoint("TOPRIGHT", -5, -5)
-    closeBtn:SetScript("OnClick", function()
-        LootRoller.UI:HidePopup(frame)
-    end)
+    closeBtn:SetScript("OnClick", function() LootRoller.UI:HidePopup(frame) end)
 
-    -- Item icon
-    local icon = frame:CreateTexture(nil, "ARTWORK")
-    icon:SetWidth(37)
-    icon:SetHeight(37)
-    icon:SetPoint("TOPLEFT", 15, -15)
-    frame.icon = icon
+    local leftHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    leftHeader:SetPoint("TOPLEFT", 20, -15)
+    leftHeader:SetText("Rolling For")
+    leftHeader:SetTextColor(COLOR_HEADER[1], COLOR_HEADER[2], COLOR_HEADER[3])
 
-    -- Item name
-    local itemName = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    itemName:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, 0)
-    itemName:SetPoint("RIGHT", closeBtn, "LEFT", -5, 0)
-    itemName:SetJustifyH("LEFT")
-    frame.itemName = itemName
+    local rightHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    rightHeader:SetPoint("TOPRIGHT", -40, -15)
+    rightHeader:SetText("Currently Equipped")
+    rightHeader:SetTextColor(COLOR_HEADER[1], COLOR_HEADER[2], COLOR_HEADER[3])
 
-    -- Item subtext (type/slot)
-    local itemSubtext = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    itemSubtext:SetPoint("TOPLEFT", itemName, "BOTTOMLEFT", 0, -2)
-    itemSubtext:SetTextColor(0.7, 0.7, 0.7)
-    frame.itemSubtext = itemSubtext
+    local divider = frame:CreateTexture(nil, "ARTWORK")
+    divider:SetTexture(1, 1, 1, 0.3)
+    divider:SetWidth(2)
+    divider:SetHeight(300)
+    divider:SetPoint("TOP", 0, -35)
+    frame.divider = divider
 
-    -- Stat diff container
-    local statFrame = CreateFrame("Frame", nil, frame)
-    statFrame:SetPoint("TOPLEFT", 15, -65)
-    statFrame:SetPoint("TOPRIGHT", -15, -65)
-    statFrame:SetHeight(90)
-    frame.statFrame = statFrame
+    local leftIcon = frame:CreateTexture(nil, "ARTWORK")
+    leftIcon:SetWidth(37)
+    leftIcon:SetHeight(37)
+    leftIcon:SetPoint("TOPLEFT", 20, -35)
+    frame.leftIcon = leftIcon
 
-    -- Button container
+    local leftName = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    leftName:SetPoint("TOPLEFT", leftIcon, "TOPRIGHT", 8, -2)
+    leftName:SetWidth(180)
+    leftName:SetJustifyH("LEFT")
+    frame.leftName = leftName
+
+    local rightIcon = frame:CreateTexture(nil, "ARTWORK")
+    rightIcon:SetWidth(37)
+    rightIcon:SetHeight(37)
+    rightIcon:SetPoint("TOPLEFT", divider, "TOPRIGHT", 15, 0)
+    frame.rightIcon = rightIcon
+
+    local rightName = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    rightName:SetPoint("TOPLEFT", rightIcon, "TOPRIGHT", 8, -2)
+    rightName:SetWidth(180)
+    rightName:SetJustifyH("LEFT")
+    frame.rightName = rightName
+
+    local leftStats = CreateFrame("Frame", nil, frame)
+    leftStats:SetPoint("TOPLEFT", 20, -80)
+    leftStats:SetWidth(230)
+    leftStats:SetHeight(250)
+    frame.leftStats = leftStats
+
+    local rightStats = CreateFrame("Frame", nil, frame)
+    rightStats:SetPoint("TOPLEFT", divider, "TOPRIGHT", 15, -45)
+    rightStats:SetWidth(230)
+    rightStats:SetHeight(250)
+    frame.rightStats = rightStats
+
     local buttonFrame = CreateFrame("Frame", nil, frame)
     buttonFrame:SetPoint("BOTTOMLEFT", 15, 15)
     buttonFrame:SetPoint("BOTTOMRIGHT", -15, 15)
     buttonFrame:SetHeight(30)
-    frame.buttonFrame = buttonFrame
 
-    -- MS Button
-    local msBtn = self:CreateRollButton(buttonFrame, "MS", function()
-        LootRoller.UI:DoRoll(frame, "ms")
-    end)
-    msBtn:SetPoint("LEFT", 0, 0)
+    local msBtn = self:CreateRollButton(buttonFrame, "MS", function() LootRoller.UI:DoRoll(frame, "ms") end)
+    msBtn:SetPoint("LEFT", 50, 0)
     frame.msBtn = msBtn
 
-    -- OS Button
-    local osBtn = self:CreateRollButton(buttonFrame, "OS", function()
-        LootRoller.UI:DoRoll(frame, "os")
-    end)
+    local osBtn = self:CreateRollButton(buttonFrame, "OS", function() LootRoller.UI:DoRoll(frame, "os") end)
     osBtn:SetPoint("CENTER", 0, 0)
     frame.osBtn = osBtn
 
-    -- TMOG Button
-    local tmogBtn = self:CreateRollButton(buttonFrame, "TMOG", function()
-        LootRoller.UI:DoRoll(frame, "tmog")
-    end)
-    tmogBtn:SetPoint("RIGHT", 0, 0)
+    local tmogBtn = self:CreateRollButton(buttonFrame, "TMOG", function() LootRoller.UI:DoRoll(frame, "tmog") end)
+    tmogBtn:SetPoint("RIGHT", -50, 0)
     frame.tmogBtn = tmogBtn
 
-    self:UpdateButtonTooltips(frame)
-
+    frame.leftLines = {}
+    frame.rightLines = {}
     frame:Hide()
     return frame
 end
 
 function LootRoller.UI:CreateRollButton(parent, text, onClick)
     local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    btn:SetWidth(75)
+    btn:SetWidth(80)
     btn:SetHeight(25)
     btn:SetText(text)
     btn:SetScript("OnClick", onClick)
     return btn
+end
+
+function LootRoller.UI:ClearStatLines(frame)
+    for _, line in ipairs(frame.leftLines or {}) do line:Hide() end
+    for _, line in ipairs(frame.rightLines or {}) do line:Hide() end
+    frame.leftLines = {}
+    frame.rightLines = {}
+end
+
+function LootRoller.UI:AddStatLine(container, lines, text, yOffset, color)
+    local line = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    line:SetPoint("TOPLEFT", 0, yOffset)
+    line:SetWidth(220)
+    line:SetJustifyH("LEFT")
+    line:SetText(text)
+    if color then line:SetTextColor(color[1], color[2], color[3]) end
+    table.insert(lines, line)
+    return line
+end
+
+function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLink)
+    self:ClearStatLines(popup)
+    local newId = GetItemId(newItemLink)
+    local newName, _, newQuality, _, _, _, _, _, _, newTexture
+    if newId then newName, _, newQuality, _, _, _, _, _, _, newTexture = GetItemInfo(newId) end
+
+    local eqId = GetItemId(equippedItemLink)
+    local eqName, _, eqQuality, _, _, _, _, _, _, eqTexture
+    if eqId then eqName, _, eqQuality, _, _, _, _, _, _, eqTexture = GetItemInfo(eqId) end
+
+    if newTexture then popup.leftIcon:SetTexture(newTexture); popup.leftIcon:Show()
+    else popup.leftIcon:Hide() end
+    popup.leftName:SetText(newName or "Unknown Item")
+    local newQC = QUALITY_COLORS[newQuality or 1] or QUALITY_COLORS[1]
+    popup.leftName:SetTextColor(newQC[1], newQC[2], newQC[3])
+
+    if eqTexture then popup.rightIcon:SetTexture(eqTexture); popup.rightIcon:Show()
+    else popup.rightIcon:Hide() end
+    if equippedItemLink then
+        popup.rightName:SetText(eqName or "Unknown")
+        local eqQC = QUALITY_COLORS[eqQuality or 1] or QUALITY_COLORS[1]
+        popup.rightName:SetTextColor(eqQC[1], eqQC[2], eqQC[3])
+    else
+        popup.rightName:SetText("(Empty Slot)")
+        popup.rightName:SetTextColor(0.5, 0.5, 0.5)
+    end
+
+    local newLines = GetTooltipLines(newItemLink)
+    local eqLines = GetTooltipLines(equippedItemLink)
+
+    local yOffset = 0
+    for i = 2, table.getn(newLines) do
+        local lineData = newLines[i]
+        local text = lineData.text
+        if lineData.rightText and lineData.rightText ~= "" then text = text .. "  " .. lineData.rightText end
+        local color = {lineData.r, lineData.g, lineData.b}
+        local eqLine = eqLines[i]
+        if eqLine then
+            local c1, c2 = CompareStatLines(lineData.text, eqLine.text)
+            color = c1
+        elseif ParseStatValue(lineData.text) then
+            color = COLOR_BETTER
+        end
+        self:AddStatLine(popup.leftStats, popup.leftLines, text, yOffset, color)
+        yOffset = yOffset - 13
+    end
+
+    yOffset = 0
+    for i = 2, table.getn(eqLines) do
+        local lineData = eqLines[i]
+        local text = lineData.text
+        if lineData.rightText and lineData.rightText ~= "" then text = text .. "  " .. lineData.rightText end
+        local color = {lineData.r, lineData.g, lineData.b}
+        local newLine = newLines[i]
+        if newLine then
+            local c1, c2 = CompareStatLines(newLine.text, lineData.text)
+            color = c2
+        elseif ParseStatValue(lineData.text) then
+            color = COLOR_BETTER
+        end
+        self:AddStatLine(popup.rightStats, popup.rightLines, text, yOffset, color)
+        yOffset = yOffset - 13
+    end
 end
 
 function LootRoller.UI:SaveFramePosition(frame)
@@ -133,21 +279,15 @@ end
 
 function LootRoller.UI:RestoreFramePosition(frame)
     local pos = LootRoller.Settings:Get("framePosition")
-    if pos then
-        frame:ClearAllPoints()
-        frame:SetPoint(pos.point, pos.x, pos.y)
-    end
+    if pos then frame:ClearAllPoints(); frame:SetPoint(pos.point, pos.x, pos.y) end
 end
 
 function LootRoller.UI:ShowItem(itemLink)
     if not LootRoller.Settings:Get("enabled") then return end
-
-    local name, link, quality, _, _, itemType, itemSubType, _, equipLoc, texture = GetItemInfo(itemLink)
-
-    -- Handle item not cached
+    local itemId = GetItemId(itemLink)
+    if not itemId then LootRoller:Print("Could not parse item link"); return end
+    local name = GetItemInfo(itemId)
     if not name then
-        LootRoller:Debug("Item not cached, retrying...")
-        -- Retry after short delay
         local retryFrame = CreateFrame("Frame")
         retryFrame.elapsed = 0
         retryFrame.itemLink = itemLink
@@ -160,74 +300,36 @@ function LootRoller.UI:ShowItem(itemLink)
         end)
         return
     end
-
-    -- Handle multi-item mode
+    local equippedLink = nil
+    local slots = LootRoller.Comparison:GetSlotsForItem(itemLink)
+    if slots and slots[1] then equippedLink = GetInventoryItemLink("player", slots[1]) end
     local mode = LootRoller.Settings:Get("multiItemMode")
     local popup
-
     if mode == "replace" then
-        -- Close existing popups
-        for _, p in ipairs(activePopups) do
-            p:Hide()
-        end
+        for _, p in ipairs(activePopups) do p:Hide() end
         activePopups = {}
         popup = self:GetOrCreatePopup()
-    else -- stack
+    else
         if table.getn(activePopups) >= MAX_STACKED_POPUPS then
-            -- Remove oldest
             local oldest = table.remove(activePopups, 1)
             oldest:Hide()
         end
         popup = self:GetOrCreatePopup()
     end
-
-    -- Store item data on frame
     popup.itemLink = itemLink
-    popup.itemName:SetText(name)
-
-    -- Set quality color
-    local qc = QUALITY_COLORS[quality] or QUALITY_COLORS[1]
-    popup.itemName:SetTextColor(qc[1], qc[2], qc[3])
-
-    -- Set icon
-    popup.icon:SetTexture(texture)
-
-    -- Set subtext
-    popup.itemSubtext:SetText(itemType .. " - " .. (itemSubType or ""))
-
-    -- Calculate and display stat comparisons
-    local comparisons = LootRoller.Comparison:CompareItems(itemLink)
-    self:DisplayStats(popup, comparisons)
-
-    -- Position for stacking
+    self:DisplayItemComparison(popup, itemLink, equippedLink)
     self:PositionPopup(popup)
-
-    -- Restore saved position (only first popup)
-    if table.getn(activePopups) == 0 then
-        self:RestoreFramePosition(popup)
-    end
-
+    if table.getn(activePopups) == 0 then self:RestoreFramePosition(popup) end
     table.insert(activePopups, popup)
     popup:Show()
-
-    -- Play sound if enabled
-    if LootRoller.Settings:Get("soundEnabled") then
-        PlaySound("igMainMenuOpen")
-    end
-
-    -- Start auto-hide timer if configured
+    if LootRoller.Settings:Get("soundEnabled") then PlaySound("igMainMenuOpen") end
     local timeout = LootRoller.Settings:Get("autoHideTimeout")
-    if timeout and timeout > 0 then
-        self:StartAutoHideTimer(popup, timeout)
-    end
+    if timeout and timeout > 0 then self:StartAutoHideTimer(popup, timeout) end
 end
 
 function LootRoller.UI:GetOrCreatePopup()
-    -- Reuse hidden popup or create new
     for _, popup in ipairs(activePopups) do
-        if not popup:IsShown() then
-            return popup
-        end
+        if not popup:IsShown() then return popup end
     end
     return self:CreatePopupFrame()
 end
@@ -241,73 +343,8 @@ function LootRoller.UI:PositionPopup(popup)
     end
 end
 
-function LootRoller.UI:DisplayStats(popup, comparisons)
-    -- Clear existing stat lines
-    if popup.statLines then
-        for _, line in ipairs(popup.statLines) do
-            line:Hide()
-        end
-    end
-    popup.statLines = {}
-
-    local yOffset = 0
-    local columnWidth = 130
-
-    for i, comparison in ipairs(comparisons) do
-        -- Column header (vs Equipped 1, vs Equipped 2, or vs Empty)
-        local headerText
-        if comparison.isEmpty then
-            headerText = "vs Empty Slot"
-        elseif table.getn(comparisons) > 1 then
-            headerText = "vs Slot " .. i
-        else
-            headerText = "vs Equipped"
-        end
-
-        local xOffset = (i - 1) * columnWidth
-
-        local header = popup.statFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        header:SetPoint("TOPLEFT", xOffset, yOffset)
-        header:SetText(headerText)
-        header:SetTextColor(1, 0.82, 0)
-        table.insert(popup.statLines, header)
-
-        yOffset = yOffset - 14
-
-        -- Stat diff lines
-        for _, statDiff in ipairs(comparison.diff) do
-            local line = popup.statFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            line:SetPoint("TOPLEFT", xOffset, yOffset)
-
-            local prefix = statDiff.value > 0 and "+" or ""
-            line:SetText(prefix .. statDiff.value .. " " .. statDiff.stat)
-
-            if statDiff.isGain then
-                line:SetTextColor(COLOR_GAIN[1], COLOR_GAIN[2], COLOR_GAIN[3])
-            else
-                line:SetTextColor(COLOR_LOSS[1], COLOR_LOSS[2], COLOR_LOSS[3])
-            end
-
-            table.insert(popup.statLines, line)
-            yOffset = yOffset - 12
-        end
-
-        -- Reset yOffset for next column
-        if i < table.getn(comparisons) then
-            yOffset = 0
-        end
-    end
-
-    -- Adjust frame height based on content
-    local contentHeight = math.max(80, -yOffset + 20)
-    popup:SetHeight(contentHeight + 110)  -- add space for header and buttons
-end
-
 function LootRoller.UI:StartAutoHideTimer(popup, seconds)
-    if popup.autoHideTimer then
-        popup.autoHideTimer:SetScript("OnUpdate", nil)
-    end
-
+    if popup.autoHideTimer then popup.autoHideTimer:SetScript("OnUpdate", nil) end
     local timer = CreateFrame("Frame")
     timer.elapsed = 0
     timer.duration = seconds
@@ -324,67 +361,53 @@ end
 
 function LootRoller.UI:HidePopup(popup)
     popup:Hide()
-
-    -- Remove from active list
     for i, p in ipairs(activePopups) do
-        if p == popup then
-            table.remove(activePopups, i)
-            break
-        end
+        if p == popup then table.remove(activePopups, i); break end
     end
-
-    -- Cancel auto-hide timer
-    if popup.autoHideTimer then
-        popup.autoHideTimer:SetScript("OnUpdate", nil)
-        popup.autoHideTimer = nil
-    end
+    if popup.autoHideTimer then popup.autoHideTimer:SetScript("OnUpdate", nil); popup.autoHideTimer = nil end
 end
 
 function LootRoller.UI:HideAllPopups()
     for _, popup in ipairs(activePopups) do
         popup:Hide()
-        if popup.autoHideTimer then
-            popup.autoHideTimer:SetScript("OnUpdate", nil)
-        end
+        if popup.autoHideTimer then popup.autoHideTimer:SetScript("OnUpdate", nil) end
     end
     activePopups = {}
 end
 
 function LootRoller.UI:DoRoll(popup, rollType)
     local rollValue
-
-    if rollType == "ms" then
-        rollValue = LootRoller.Settings:Get("msRoll")
-    elseif rollType == "os" then
-        rollValue = LootRoller.Settings:Get("osRoll")
-    elseif rollType == "tmog" then
-        rollValue = LootRoller.Settings:Get("tmogRoll")
-    end
-
-    if rollValue then
-        RandomRoll(1, rollValue)
-        LootRoller:Debug("Rolling 1-" .. rollValue .. " for " .. rollType)
-    end
-
-    -- Hide popup after rolling
+    if rollType == "ms" then rollValue = LootRoller.Settings:Get("msRoll")
+    elseif rollType == "os" then rollValue = LootRoller.Settings:Get("osRoll")
+    elseif rollType == "tmog" then rollValue = LootRoller.Settings:Get("tmogRoll") end
+    if rollValue then RandomRoll(1, rollValue) end
     self:HidePopup(popup)
 end
 
--- Update button tooltips with current roll values
-function LootRoller.UI:UpdateButtonTooltips(popup)
-    local function SetTooltip(btn, rollType, rollValue)
-        btn:SetScript("OnEnter", function()
-            GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-            GameTooltip:SetText(rollType .. " Roll")
-            GameTooltip:AddLine("Roll 1-" .. rollValue, 1, 1, 1)
-            GameTooltip:Show()
-        end)
-        btn:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
+function LootRoller.UI:ShowTestItem()
+    if not LootRoller.Settings:Get("enabled") then LootRoller:Print("Addon disabled"); return end
+    local testLink = nil
+    local slots = {"HeadSlot", "NeckSlot", "ShoulderSlot", "BackSlot", "ChestSlot",
+        "WristSlot", "HandsSlot", "WaistSlot", "LegsSlot", "FeetSlot",
+        "Finger0Slot", "Finger1Slot", "Trinket0Slot", "Trinket1Slot",
+        "MainHandSlot", "SecondaryHandSlot", "RangedSlot"}
+    for _, slotName in ipairs(slots) do
+        local slotId = GetInventorySlotInfo(slotName)
+        if slotId then
+            local link = GetInventoryItemLink("player", slotId)
+            if link then testLink = link; break end
+        end
     end
-
-    SetTooltip(popup.msBtn, "Main Spec", LootRoller.Settings:Get("msRoll"))
-    SetTooltip(popup.osBtn, "Off Spec", LootRoller.Settings:Get("osRoll"))
-    SetTooltip(popup.tmogBtn, "Transmog", LootRoller.Settings:Get("tmogRoll"))
+    if not testLink then
+        for bag = 0, 4 do
+            for slot = 1, GetContainerNumSlots(bag) do
+                local link = GetContainerItemLink(bag, slot)
+                if link then testLink = link; break end
+            end
+            if testLink then break end
+        end
+    end
+    if not testLink then LootRoller:Print("No items found to test with"); return end
+    LootRoller:Print("Testing with: " .. testLink)
+    self:ShowItem(testLink)
 end

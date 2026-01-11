@@ -11,7 +11,7 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
 
 frame:SetScript("OnEvent", function()
-    if event == "ADDON_LOADED" and arg1 == "LootRoller" then
+    if event == "ADDON_LOADED" and arg1 == "1701-LootRoller" then
         LootRoller:OnAddonLoaded()
     elseif event == "PLAYER_LOGIN" then
         LootRoller:OnPlayerLogin()

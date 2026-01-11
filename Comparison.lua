@@ -3,6 +3,19 @@
 
 LootRoller.Comparison = {}
 
+-- Helper: Extract hyperlink portion from item link (for SetHyperlink)
+local function ExtractHyperlink(itemLink)
+    if not itemLink then return nil end
+    local _, _, hyperlink = string.find(itemLink, "|H(item:%d+[^|]*)|h")
+    return hyperlink or itemLink
+end
+
+-- Helper: Pattern match for Lua 5.0 (returns first capture)
+local function PatternMatch(text, pattern)
+    local _, _, capture = string.find(text, pattern)
+    return capture
+end
+
 -- Map WoW equip locations to inventory slot IDs
 local EQUIP_LOC_TO_SLOTS = {
     INVTYPE_HEAD = {1},
@@ -32,7 +45,10 @@ local EQUIP_LOC_TO_SLOTS = {
 }
 
 function LootRoller.Comparison:GetSlotsForItem(itemLink)
-    local _, _, _, _, _, _, _, _, equipLoc = GetItemInfo(itemLink)
+    local _, _, id = string.find(itemLink, "item:(%d+)")
+    if not id then return nil end
+    
+    local _, _, _, _, _, _, _, _, equipLoc = GetItemInfo(tonumber(id))
 
     if not equipLoc or equipLoc == "" then
         return nil
@@ -104,8 +120,14 @@ function LootRoller.Comparison:ExtractStats(itemLink)
         return {}
     end
 
+    -- Extract the hyperlink portion for SetHyperlink
+    local hyperlink = ExtractHyperlink(itemLink)
+    if not hyperlink then
+        return {}
+    end
+
     scanTooltip:ClearLines()
-    scanTooltip:SetHyperlink(itemLink)
+    scanTooltip:SetHyperlink(hyperlink)
 
     local stats = {}
     local numLines = scanTooltip:NumLines()
@@ -116,7 +138,7 @@ function LootRoller.Comparison:ExtractStats(itemLink)
             local text = leftText:GetText()
             if text then
                 for _, patternInfo in ipairs(STAT_PATTERNS) do
-                    local value = string.match(text, patternInfo.pattern)
+                    local value = PatternMatch(text, patternInfo.pattern)
                     if value then
                         stats[patternInfo.stat] = (stats[patternInfo.stat] or 0) + tonumber(value)
                     end

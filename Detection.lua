@@ -46,11 +46,11 @@ function LootRoller.Detection:ParseChatForItems(message)
     if not message then return end
 
     -- Pattern for item links: |cffxxxxxx|Hitem:itemId:...|h[Name]|h|r
-    local itemLink = string.match(message, "|c%x+|Hitem:(%d+).-|h%[.-%]|h|r")
+    local _, _, itemId = string.find(message, "|c%x+|Hitem:(%d+).-%|h%[.-%]|h|r")
 
-    if itemLink then
+    if itemId then
         -- Extract full item link for display
-        local fullLink = string.match(message, "(|c%x+|Hitem:.+|h%[.-%]|h|r)")
+        local _, _, fullLink = string.find(message, "(|c%x+|Hitem:.+|h%[.-%]|h|r)")
         if fullLink then
             self:OnItemAnnounced(fullLink)
         end
@@ -78,13 +78,13 @@ function LootRoller.Detection:OnItemAnnounced(itemLink)
 end
 
 function LootRoller.Detection:GetItemIdFromLink(itemLink)
-    local itemId = string.match(itemLink, "item:(%d+)")
+    local _, _, itemId = string.find(itemLink, "item:(%d+)")
     return itemId or "unknown"
 end
 
 function LootRoller.Detection:ParseRollResult(message)
     -- Pattern: "PlayerName rolls X (1-Y)"
-    local playerName, roll, minRoll, maxRoll = string.match(message, "(.+) rolls (%d+) %((%d+)%-(%d+)%)")
+    local _, _, playerName, roll, minRoll, maxRoll = string.find(message, "(.+) rolls (%d+) %((%d+)%-(%d+)%)")
 
     if playerName and roll then
         LootRoller:Debug("Roll detected: " .. playerName .. " rolled " .. roll .. " (1-" .. maxRoll .. ")")
@@ -148,7 +148,7 @@ function LootRoller.Detection:ParseAddonMessage(prefix, message, channel, sender
 
     -- Try to parse item link from message
     -- RollFor may send item links in various formats
-    local fullLink = string.match(message, "(|c%x+|Hitem:.+|h%[.-%]|h|r)")
+    local _, _, fullLink = string.find(message, "(|c%x+|Hitem:.+|h%[.-%]|h|r)")
 
     if fullLink then
         self:OnItemAnnounced(fullLink)
