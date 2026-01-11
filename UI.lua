@@ -20,6 +20,31 @@ local QUALITY_COLORS = {
     [5] = {1, 0.5, 0},
 }
 
+-- Stat patterns for line classification (matches Comparison.lua)
+local STAT_PATTERNS = {
+    {pattern = "%+(%d+) Strength", stat = "Strength"},
+    {pattern = "%+(%d+) Agility", stat = "Agility"},
+    {pattern = "%+(%d+) Stamina", stat = "Stamina"},
+    {pattern = "%+(%d+) Intellect", stat = "Intellect"},
+    {pattern = "%+(%d+) Spirit", stat = "Spirit"},
+    {pattern = "%+(%d+) Attack Power", stat = "Attack Power"},
+    {pattern = "%+(%d+) Spell Damage", stat = "Spell Damage"},
+    {pattern = "Increases damage and healing done by magical spells and effects by up to (%d+)", stat = "Spell Power"},
+    {pattern = "%+(%d+) Healing Spells", stat = "Healing"},
+    {pattern = "Increases healing done by spells and effects by up to (%d+)", stat = "Healing"},
+    {pattern = "%+(%d+)%% Critical Strike", stat = "Crit"},
+    {pattern = "Improves your chance to get a critical strike by (%d+)%%", stat = "Crit"},
+    {pattern = "Improves your chance to hit by (%d+)%%", stat = "Hit"},
+    {pattern = "%+(%d+) Defense", stat = "Defense"},
+    {pattern = "Increased Defense %+(%d+)", stat = "Defense"},
+    {pattern = "%+(%d+) Fire Resistance", stat = "Fire Resist"},
+    {pattern = "%+(%d+) Nature Resistance", stat = "Nature Resist"},
+    {pattern = "%+(%d+) Frost Resistance", stat = "Frost Resist"},
+    {pattern = "%+(%d+) Shadow Resistance", stat = "Shadow Resist"},
+    {pattern = "%+(%d+) Arcane Resistance", stat = "Arcane Resist"},
+    {pattern = "(%d+) Armor", stat = "Armor"},
+}
+
 local scanTooltip = CreateFrame("GameTooltip", "LootRollerScanTooltip2", nil, "GameTooltipTemplate")
 scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
 
