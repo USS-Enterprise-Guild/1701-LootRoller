@@ -1,7 +1,7 @@
 ## Interface: 11200
 ## Title: LootRoller
 ## Notes: RollFor companion - shows item comparison and quick roll buttons
-## Author: USS Enterprise Guild
+## Author: Kilaire
 ## Version: 1.0.0
 ## SavedVariables: LootRoller_Settings
 
