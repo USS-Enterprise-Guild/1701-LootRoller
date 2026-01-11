@@ -45,6 +45,35 @@ local STAT_PATTERNS = {
     {pattern = "(%d+) Armor", stat = "Armor"},
 }
 
+-- Classify a tooltip line: identify stat type and value if applicable
+local function ClassifyLine(lineData)
+    local text = lineData.text or ""
+    for _, patternInfo in ipairs(STAT_PATTERNS) do
+        local _, _, value = string.find(text, patternInfo.pattern)
+        if value then
+            return {
+                text = text,
+                rightText = lineData.rightText,
+                r = lineData.r,
+                g = lineData.g,
+                b = lineData.b,
+                statType = patternInfo.stat,
+                value = tonumber(value)
+            }
+        end
+    end
+    -- Non-stat line
+    return {
+        text = text,
+        rightText = lineData.rightText,
+        r = lineData.r,
+        g = lineData.g,
+        b = lineData.b,
+        statType = nil,
+        value = nil
+    }
+end
+
 local scanTooltip = CreateFrame("GameTooltip", "LootRollerScanTooltip2", nil, "GameTooltipTemplate")
 scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
 
