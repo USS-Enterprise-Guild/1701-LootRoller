@@ -205,27 +205,6 @@ local function GetTooltipLines(itemLink)
     return lines
 end
 
-local function ParseStatValue(text)
-    if not text then return nil end
-    local _, _, value = string.find(text, "%+(%d+)")
-    if value then return tonumber(value) end
-    local _, _, value2 = string.find(text, "(%d+)%%")
-    if value2 then return tonumber(value2) end
-    local _, _, value3 = string.find(text, "by (%d+)")
-    if value3 then return tonumber(value3) end
-    return nil
-end
-
-local function CompareStatLines(line1, line2)
-    local val1 = ParseStatValue(line1 or "")
-    local val2 = ParseStatValue(line2 or "")
-    if val1 and val2 then
-        if val1 > val2 then return COLOR_BETTER, COLOR_WORSE
-        elseif val1 < val2 then return COLOR_WORSE, COLOR_BETTER end
-    end
-    return COLOR_NEUTRAL, COLOR_NEUTRAL
-end
-
 function LootRoller.UI:CreatePopupFrame()
     local frame = CreateFrame("Frame", "LootRollerPopup" .. (table.getn(activePopups) + 1), UIParent)
     frame:SetWidth(520)
