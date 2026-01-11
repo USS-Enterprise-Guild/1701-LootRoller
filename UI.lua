@@ -392,6 +392,8 @@ end
 
 function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLink)
     self:ClearStatLines(popup)
+
+    -- Get item info for headers
     local newId = GetItemId(newItemLink)
     local newName, _, newQuality, _, _, _, _, _, _, newTexture
     if newId then newName, _, newQuality, _, _, _, _, _, _, newTexture = GetItemInfo(newId) end
@@ -400,6 +402,7 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     local eqName, _, eqQuality, _, _, _, _, _, _, eqTexture
     if eqId then eqName, _, eqQuality, _, _, _, _, _, _, eqTexture = GetItemInfo(eqId) end
 
+    -- Set icons and names
     if newTexture then popup.leftIcon:SetTexture(newTexture); popup.leftIcon:Show()
     else popup.leftIcon:Hide() end
     popup.leftName:SetText(newName or "Unknown Item")
@@ -417,41 +420,58 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
         popup.rightName:SetTextColor(0.5, 0.5, 0.5)
     end
 
+    -- Get and align tooltip lines
     local newLines = GetTooltipLines(newItemLink)
     local eqLines = GetTooltipLines(equippedItemLink)
 
+    -- Skip first line (item name) for comparison
+    local newLinesNoName = {}
+    local eqLinesNoName = {}
+    for i = 2, table.getn(newLines) do table.insert(newLinesNoName, newLines[i]) end
+    for i = 2, table.getn(eqLines) do table.insert(eqLinesNoName, eqLines[i]) end
+
+    local alignedPairs = AlignTooltipLines(newLinesNoName, eqLinesNoName)
+
+    -- Render aligned lines
     local yOffset = 0
-    for i = 2, table.getn(newLines) do
-        local lineData = newLines[i]
-        local text = lineData.text
-        if lineData.rightText and lineData.rightText ~= "" then text = text .. "  " .. lineData.rightText end
-        local color = {lineData.r, lineData.g, lineData.b}
-        local eqLine = eqLines[i]
-        if eqLine then
-            local c1, c2 = CompareStatLines(lineData.text, eqLine.text)
-            color = c1
-        elseif ParseStatValue(lineData.text) then
-            color = COLOR_BETTER
+    local lineHeight = 13
+
+    for _, pair in ipairs(alignedPairs) do
+        local leftLine = pair.left
+        local rightLine = pair.right
+
+        -- Left side
+        local leftText = ""
+        if leftLine then
+            leftText = leftLine.text or ""
+            if leftLine.rightText and leftLine.rightText ~= "" then
+                leftText = leftText .. "  " .. leftLine.rightText
+            end
         end
-        self:AddStatLine(popup.leftStats, popup.leftLines, text, yOffset, color)
-        yOffset = yOffset - 13
+        local leftColor = GetComparisonColor(leftLine, rightLine, "left")
+        self:AddStatLine(popup.leftStats, popup.leftLines, leftText, yOffset, leftColor)
+
+        -- Right side
+        local rightText = ""
+        if rightLine then
+            rightText = rightLine.text or ""
+            if rightLine.rightText and rightLine.rightText ~= "" then
+                rightText = rightText .. "  " .. rightLine.rightText
+            end
+        end
+        local rightColor = GetComparisonColor(leftLine, rightLine, "right")
+        self:AddStatLine(popup.rightStats, popup.rightLines, rightText, yOffset, rightColor)
+
+        yOffset = yOffset - lineHeight
     end
 
-    yOffset = 0
-    for i = 2, table.getn(eqLines) do
-        local lineData = eqLines[i]
-        local text = lineData.text
-        if lineData.rightText and lineData.rightText ~= "" then text = text .. "  " .. lineData.rightText end
-        local color = {lineData.r, lineData.g, lineData.b}
-        local newLine = newLines[i]
-        if newLine then
-            local c1, c2 = CompareStatLines(newLine.text, lineData.text)
-            color = c2
-        elseif ParseStatValue(lineData.text) then
-            color = COLOR_BETTER
-        end
-        self:AddStatLine(popup.rightStats, popup.rightLines, text, yOffset, color)
-        yOffset = yOffset - 13
+    -- Update scroll child height
+    local contentHeight = math.abs(yOffset) + 20
+    popup.scrollChild:SetHeight(contentHeight)
+    popup.leftStats:SetHeight(contentHeight)
+    popup.rightStats:SetHeight(contentHeight)
+    if popup.scrollDivider then
+        popup.scrollDivider:SetHeight(contentHeight)
     end
 end
 
