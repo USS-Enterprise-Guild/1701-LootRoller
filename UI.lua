@@ -130,6 +130,44 @@ local function AlignTooltipLines(leftLines, rightLines)
     return result
 end
 
+-- Get color for a line based on stat comparison
+-- side: "left" (loot item) or "right" (equipped item)
+local function GetComparisonColor(leftLine, rightLine, side)
+    -- Both have same stat type - compare values
+    if leftLine and rightLine and leftLine.statType and rightLine.statType then
+        if leftLine.statType == rightLine.statType and leftLine.value and rightLine.value then
+            if side == "left" then
+                if leftLine.value > rightLine.value then return COLOR_BETTER
+                elseif leftLine.value < rightLine.value then return COLOR_WORSE
+                else return COLOR_NEUTRAL end
+            else -- right side
+                if rightLine.value > leftLine.value then return COLOR_BETTER
+                elseif rightLine.value < leftLine.value then return COLOR_WORSE
+                else return COLOR_NEUTRAL end
+            end
+        end
+    end
+
+    -- Left has stat, right is blank (gaining stat)
+    if leftLine and leftLine.statType and not rightLine then
+        if side == "left" then return COLOR_BETTER end
+    end
+
+    -- Right has stat, left is blank (equipped has stat loot lacks)
+    if rightLine and rightLine.statType and not leftLine then
+        if side == "right" then return COLOR_BETTER end
+    end
+
+    -- Non-stat lines or unmatched: use original color
+    if side == "left" and leftLine then
+        return {leftLine.r or 1, leftLine.g or 1, leftLine.b or 1}
+    elseif side == "right" and rightLine then
+        return {rightLine.r or 1, rightLine.g or 1, rightLine.b or 1}
+    end
+
+    return COLOR_NEUTRAL
+end
+
 local scanTooltip = CreateFrame("GameTooltip", "LootRollerScanTooltip2", nil, "GameTooltipTemplate")
 scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
 
