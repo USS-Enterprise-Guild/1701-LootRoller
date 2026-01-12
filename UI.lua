@@ -88,42 +88,47 @@ local function AlignTooltipLines(leftLines, rightLines)
         table.insert(rightClassified, ClassifyLine(line))
     end
 
-    -- Track which right lines have been matched
-    local rightUsed = {}
+    -- Walk both lists simultaneously
+    local li, ri = 1, 1
+    local leftLen = table.getn(leftClassified)
+    local rightLen = table.getn(rightClassified)
 
-    -- Process left lines, finding matches in right
-    for i, leftLine in ipairs(leftClassified) do
-        local matched = false
-        if leftLine.statType then
-            -- Look for matching stat in right (unused)
-            for j, rightLine in ipairs(rightClassified) do
-                if not rightUsed[j] and rightLine.statType == leftLine.statType then
-                    table.insert(result, {left = leftLine, right = rightLine})
-                    rightUsed[j] = true
-                    matched = true
-                    break
-                end
-            end
-            if not matched then
-                -- Left has stat, right doesn't
-                table.insert(result, {left = leftLine, right = nil})
-            end
-        else
-            -- Non-stat line: pair with corresponding position if exists and not a stat
-            local rightLine = rightClassified[i]
-            if rightLine and not rightLine.statType and not rightUsed[i] then
-                table.insert(result, {left = leftLine, right = rightLine})
-                rightUsed[i] = true
-            else
-                table.insert(result, {left = leftLine, right = nil})
-            end
-        end
-    end
+    while li <= leftLen or ri <= rightLen do
+        local leftLine = leftClassified[li]
+        local rightLine = rightClassified[ri]
 
-    -- Add any unmatched right lines
-    for j, rightLine in ipairs(rightClassified) do
-        if not rightUsed[j] then
+        if not leftLine and not rightLine then
+            break
+        elseif not leftLine then
+            -- Left exhausted, output remaining right
             table.insert(result, {left = nil, right = rightLine})
+            ri = ri + 1
+        elseif not rightLine then
+            -- Right exhausted, output remaining left
+            table.insert(result, {left = leftLine, right = nil})
+            li = li + 1
+        elseif not leftLine.statType and not rightLine.statType then
+            -- Both non-stat: pair together, advance both
+            table.insert(result, {left = leftLine, right = rightLine})
+            li = li + 1
+            ri = ri + 1
+        elseif leftLine.statType and rightLine.statType and leftLine.statType == rightLine.statType then
+            -- Same stat type: pair together, advance both
+            table.insert(result, {left = leftLine, right = rightLine})
+            li = li + 1
+            ri = ri + 1
+        elseif leftLine.statType and not rightLine.statType then
+            -- Left has stat, right has non-stat: output left stat with blank, advance left only
+            table.insert(result, {left = leftLine, right = nil})
+            li = li + 1
+        elseif not leftLine.statType and rightLine.statType then
+            -- Left has non-stat, right has stat: output right stat with blank, advance right only
+            table.insert(result, {left = nil, right = rightLine})
+            ri = ri + 1
+        else
+            -- Both stats but different types: output left with blank, advance left only
+            table.insert(result, {left = leftLine, right = nil})
+            li = li + 1
         end
     end
 
