@@ -169,7 +169,6 @@ local function GetComparisonColor(leftLine, rightLine, side)
 end
 
 local scanTooltip = CreateFrame("GameTooltip", "LootRollerScanTooltip2", nil, "GameTooltipTemplate")
-scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
 
 local function GetItemId(itemLink)
     if not itemLink then return nil end
@@ -187,6 +186,8 @@ local function GetTooltipLines(itemLink)
     if not itemLink then return {} end
     local hyperlink = ExtractHyperlink(itemLink)
     if not hyperlink then return {} end
+    -- SetOwner must be called before SetHyperlink for tooltip to populate
+    scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
     scanTooltip:ClearLines()
     scanTooltip:SetHyperlink(hyperlink)
     local lines = {}
@@ -279,8 +280,9 @@ function LootRoller.UI:CreatePopupFrame()
     frame.scrollFrame = scrollFrame
 
     -- Scroll child (content container)
+    -- Note: Use explicit width because GetWidth() returns 0 before anchors resolve
     local scrollChild = CreateFrame("Frame", frame:GetName() .. "ScrollChild", scrollFrame)
-    scrollChild:SetWidth(scrollFrame:GetWidth())
+    scrollChild:SetWidth(470) -- 520 (frame) - 15 (left) - 35 (right)
     scrollChild:SetHeight(1) -- Will be set dynamically
     scrollFrame:SetScrollChild(scrollChild)
     frame.scrollChild = scrollChild
