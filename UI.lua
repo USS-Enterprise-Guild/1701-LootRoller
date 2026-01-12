@@ -505,10 +505,8 @@ function LootRoller.UI:ShowItem(itemLink)
     end
     local equippedLink = nil
     local slots = LootRoller.Comparison:GetSlotsForItem(itemLink)
-    LootRoller:Debug("GetSlotsForItem returned: " .. (slots and ("slot " .. slots[1]) or "nil"))
     if slots and slots[1] then
         equippedLink = GetInventoryItemLink("player", slots[1])
-        LootRoller:Debug("Equipped in slot " .. slots[1] .. ": " .. (equippedLink or "empty"))
     end
     local mode = LootRoller.Settings:Get("multiItemMode")
     local popup
@@ -616,11 +614,14 @@ function LootRoller.UI:ShowTestItem()
     local itemId = TEST_ITEM_IDS[math.random(1, table.getn(TEST_ITEM_IDS))]
 
     -- Check if item is cached
-    local name, link, quality = GetItemInfo(itemId)
+    local name, link = GetItemInfo(itemId)
 
     if not name then
-        -- Item not cached, request it and retry
+        -- Item not cached - use tooltip query to force cache request
         LootRoller:Print("Loading item " .. itemId .. " into cache...")
+        scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+        scanTooltip:SetHyperlink("item:" .. itemId)
+
         local retryFrame = CreateFrame("Frame")
         retryFrame.elapsed = 0
         retryFrame.itemId = itemId
@@ -630,6 +631,9 @@ function LootRoller.UI:ShowTestItem()
             if this.elapsed > 0.5 then
                 this.elapsed = 0
                 this.attempts = this.attempts + 1
+                -- Try tooltip query again each attempt
+                scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+                scanTooltip:SetHyperlink("item:" .. this.itemId)
                 local n, l = GetItemInfo(this.itemId)
                 if n then
                     LootRoller:Print("Testing with: " .. l)

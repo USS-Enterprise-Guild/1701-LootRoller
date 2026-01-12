@@ -48,30 +48,14 @@ function LootRoller.Comparison:GetSlotsForItem(itemLink)
     local _, _, id = string.find(itemLink, "item:(%d+)")
     if not id then return nil end
 
-    local v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12 = GetItemInfo(tonumber(id))
-
-    LootRoller:Debug("GetItemInfo dump for " .. id .. ":")
-    LootRoller:Debug("1=" .. tostring(v1) .. " 2=" .. tostring(v2))
-    LootRoller:Debug("3=" .. tostring(v3) .. " 4=" .. tostring(v4))
-    LootRoller:Debug("5=" .. tostring(v5) .. " 6=" .. tostring(v6))
-    LootRoller:Debug("7=" .. tostring(v7) .. " 8=" .. tostring(v8))
-    LootRoller:Debug("9=" .. tostring(v9) .. " 10=" .. tostring(v10))
-    LootRoller:Debug("11=" .. tostring(v11) .. " 12=" .. tostring(v12))
-
-    -- Standard 1.12.1: equipLoc is v9
-    local equipLoc = v9
-    -- Check if v9 looks like a texture path, if so try other positions
-    if equipLoc and string.find(equipLoc, "Interface") then
-        equipLoc = v10  -- TurtleWoW might have it here
-    end
+    -- TurtleWoW return order: name, link, quality, itemLevel, minLevel, itemType, itemSubType, equipLoc, ...
+    local _, _, _, _, _, _, _, equipLoc = GetItemInfo(tonumber(id))
 
     if not equipLoc or equipLoc == "" then
         return nil
     end
 
-    local slots = EQUIP_LOC_TO_SLOTS[equipLoc]
-    LootRoller:Debug("Using equipLoc=" .. tostring(equipLoc) .. " -> slot " .. (slots and slots[1] or "nil"))
-    return slots
+    return EQUIP_LOC_TO_SLOTS[equipLoc]
 end
 
 function LootRoller.Comparison:GetEquippedItemLink(slotId)
