@@ -20,6 +20,19 @@ local QUALITY_COLORS = {
     [5] = {1, 0.5, 0},
 }
 
+-- Check if item appearance is in transmog collection (requires Tmog addon)
+local function GetTmogCollectionStatus(itemId, equipLoc)
+    -- Check if Tmog addon is loaded
+    if not TMOG_CACHE then return nil end
+    if not itemId or not equipLoc or equipLoc == "" then return nil end
+
+    -- Check if this appearance is collected
+    if TMOG_CACHE[equipLoc] and TMOG_CACHE[equipLoc][itemId] then
+        return true
+    end
+    return false
+end
+
 -- Stat patterns for line classification (matches Comparison.lua)
 local STAT_PATTERNS = {
     {pattern = "%+(%d+) Strength", stat = "Strength"},
@@ -375,6 +388,13 @@ function LootRoller.UI:CreatePopupFrame()
     leftName:SetJustifyH("LEFT")
     frame.leftName = leftName
 
+    -- Transmog collection status (only shown if Tmog addon is loaded)
+    local leftTmogStatus = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    leftTmogStatus:SetPoint("TOPLEFT", leftName, "BOTTOMLEFT", 0, -2)
+    leftTmogStatus:SetWidth(180)
+    leftTmogStatus:SetJustifyH("LEFT")
+    frame.leftTmogStatus = leftTmogStatus
+
     local rightIcon = frame:CreateTexture(nil, "ARTWORK")
     rightIcon:SetWidth(37)
     rightIcon:SetHeight(37)
@@ -526,6 +546,22 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     popup.leftName:SetText(newInfo.name or "Unknown Item")
     local newQC = QUALITY_COLORS[newInfo.quality or 1] or QUALITY_COLORS[1]
     popup.leftName:SetTextColor(newQC[1], newQC[2], newQC[3])
+
+    -- Show transmog collection status if Tmog addon is loaded
+    if popup.leftTmogStatus then
+        local tmogStatus = GetTmogCollectionStatus(newId, newInfo.equipLoc)
+        if tmogStatus == true then
+            popup.leftTmogStatus:SetText("Collected")
+            popup.leftTmogStatus:SetTextColor(0.1, 1, 0.1)
+            popup.leftTmogStatus:Show()
+        elseif tmogStatus == false then
+            popup.leftTmogStatus:SetText("Not collected")
+            popup.leftTmogStatus:SetTextColor(1, 0.82, 0)
+            popup.leftTmogStatus:Show()
+        else
+            popup.leftTmogStatus:Hide()
+        end
+    end
 
     if eqInfo.texture then popup.rightIcon:SetTexture(eqInfo.texture); popup.rightIcon:Show()
     else popup.rightIcon:Hide() end
