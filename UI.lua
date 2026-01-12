@@ -286,7 +286,11 @@ local function GetTooltipLines(itemLink)
         local leftText = getglobal("LootRollerScanTooltip2TextLeft" .. i)
         local rightText = getglobal("LootRollerScanTooltip2TextRight" .. i)
         local left = leftText and leftText:GetText() or ""
-        local right = rightText and rightText:GetText() or ""
+        -- Only get rightText if the FontString is actually shown (not stale from previous tooltip)
+        local right = ""
+        if rightText and rightText:IsShown() then
+            right = rightText:GetText() or ""
+        end
         local r, g, b = 1, 1, 1
         if leftText then r, g, b = leftText:GetTextColor() end
         if left and left ~= "" then
