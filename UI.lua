@@ -390,13 +390,14 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     self:ClearStatLines(popup)
 
     -- Get item info for headers
+    -- TurtleWoW: 1=name, 2=link, 3=quality, 4=itemLevel, 5=itemType, 6=itemSubType, 7=stackCount, 8=equipLoc, 9=texture
     local newId = GetItemId(newItemLink)
-    local newName, _, newQuality, _, _, _, _, _, _, newTexture
-    if newId then newName, _, newQuality, _, _, _, _, _, _, newTexture = GetItemInfo(newId) end
+    local newName, _, newQuality, _, _, _, _, _, newTexture
+    if newId then newName, _, newQuality, _, _, _, _, _, newTexture = GetItemInfo(newId) end
 
     local eqId = GetItemId(equippedItemLink)
-    local eqName, _, eqQuality, _, _, _, _, _, _, eqTexture
-    if eqId then eqName, _, eqQuality, _, _, _, _, _, _, eqTexture = GetItemInfo(eqId) end
+    local eqName, _, eqQuality, _, _, _, _, _, eqTexture
+    if eqId then eqName, _, eqQuality, _, _, _, _, _, eqTexture = GetItemInfo(eqId) end
 
     -- Set icons and names
     if newTexture then popup.leftIcon:SetTexture(newTexture); popup.leftIcon:Show()
