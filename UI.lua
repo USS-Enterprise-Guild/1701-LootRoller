@@ -58,6 +58,7 @@ local function IsEnchantLine(r, g, b, text)
     -- Equip: effects are also green, but they start with "Equip:"
     -- Enchants don't have this prefix
     if text and string.find(text, "^Equip:") then return false end
+    LootRoller:Debug("ENCHANT DETECTED: " .. (text or "nil"))
     return true
 end
 
@@ -71,13 +72,17 @@ local function ClassifyLine(lineData)
     for _, patternInfo in ipairs(STAT_PATTERNS) do
         local _, _, value = string.find(text, patternInfo.pattern)
         if value then
+            local statType = isEnchant and "Enchant" or patternInfo.stat
+            if isEnchant then
+                LootRoller:Debug("Classified as ENCHANT (was " .. patternInfo.stat .. "): " .. text)
+            end
             return {
                 text = text,
                 rightText = lineData.rightText,
                 r = lineData.r,
                 g = lineData.g,
                 b = lineData.b,
-                statType = isEnchant and "Enchant" or patternInfo.stat,
+                statType = statType,
                 value = tonumber(value),
                 isEnchant = isEnchant
             }
