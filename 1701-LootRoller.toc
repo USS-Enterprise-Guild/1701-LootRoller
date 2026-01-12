@@ -4,6 +4,7 @@
 ## Author: USS Enterprise Guild
 ## Version: 1.0.0
 ## SavedVariables: LootRoller_Settings
+## OptionalDeps: Tmog
 
 1701-LootRoller.lua
 Settings.lua

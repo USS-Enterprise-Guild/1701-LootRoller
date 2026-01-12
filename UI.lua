@@ -577,18 +577,29 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     popup.leftName:SetTextColor(newQC[1], newQC[2], newQC[3])
 
     -- Show transmog collection status if Tmog addon is loaded
+    local tmogStatus = nil
     if popup.leftTmogStatus then
-        local tmogStatus = GetTmogCollectionStatus(newId, newInfo.equipLoc)
+        tmogStatus = GetTmogCollectionStatus(newId, newInfo.equipLoc)
         if tmogStatus == true then
-            popup.leftTmogStatus:SetText("Collected")
-            popup.leftTmogStatus:SetTextColor(0.1, 1, 0.1)
+            popup.leftTmogStatus:SetText("TMOG: Collected")
+            popup.leftTmogStatus:SetTextColor(0.5, 0.5, 0.5)
             popup.leftTmogStatus:Show()
         elseif tmogStatus == false then
-            popup.leftTmogStatus:SetText("Not collected")
+            popup.leftTmogStatus:SetText("TMOG: Not collected")
             popup.leftTmogStatus:SetTextColor(1, 0.82, 0)
             popup.leftTmogStatus:Show()
         else
             popup.leftTmogStatus:Hide()
+        end
+    end
+    popup.tmogCollected = tmogStatus
+
+    -- Grey out TMOG button if appearance is already collected (keep clickable)
+    if popup.tmogBtn then
+        if tmogStatus == true then
+            popup.tmogBtn:SetAlpha(0.5)
+        else
+            popup.tmogBtn:SetAlpha(1.0)
         end
     end
 
