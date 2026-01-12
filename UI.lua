@@ -34,7 +34,9 @@ local STAT_PATTERNS = {
     {pattern = "Increases healing done by spells and effects by up to (%d+)", stat = "Healing"},
     {pattern = "%+(%d+)%% Critical Strike", stat = "Crit"},
     {pattern = "Improves your chance to get a critical strike by (%d+)%%", stat = "Crit"},
+    {pattern = "Improves your chance to get a critical strike with spells by (%d+)%%", stat = "Spell Crit"},
     {pattern = "Improves your chance to hit by (%d+)%%", stat = "Hit"},
+    {pattern = "Improves your chance to hit with spells by (%d+)%%", stat = "Spell Hit"},
     {pattern = "%+(%d+) Defense", stat = "Defense"},
     {pattern = "Increased Defense %+(%d+)", stat = "Defense"},
     {pattern = "%+(%d+) Fire Resistance", stat = "Fire Resist"},
@@ -43,6 +45,8 @@ local STAT_PATTERNS = {
     {pattern = "%+(%d+) Shadow Resistance", stat = "Shadow Resist"},
     {pattern = "%+(%d+) Arcane Resistance", stat = "Arcane Resist"},
     {pattern = "(%d+) Armor", stat = "Armor"},
+    {pattern = "Restores (%d+) mana per 5 sec", stat = "MP5"},
+    {pattern = "Restores (%d+) health per 5 sec", stat = "HP5"},
 }
 
 -- Classify a tooltip line: identify stat type and value if applicable
@@ -199,7 +203,12 @@ local function GetComparisonColor(leftLine, rightLine, side)
         if side == "right" then return COLOR_BETTER end
     end
 
-    -- Non-stat lines or unmatched: use original color
+    -- Both non-stat lines exist: use neutral color (not original tooltip green)
+    if leftLine and rightLine and not leftLine.statType and not rightLine.statType then
+        return COLOR_NEUTRAL
+    end
+
+    -- Only one side has a line (unmatched): use original tooltip color
     if side == "left" and leftLine then
         return {leftLine.r or 1, leftLine.g or 1, leftLine.b or 1}
     elseif side == "right" and rightLine then
