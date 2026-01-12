@@ -216,8 +216,8 @@ function LootRoller.UI:CreatePopupFrame()
     frame:EnableMouse(true)
     frame:SetClampedToScreen(true)
     frame:SetBackdrop({
-        bgFile = "Interface\DialogFrame\UI-DialogBox-Background",
-        edgeFile = "Interface\DialogFrame\UI-DialogBox-Border",
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
         tile = true, tileSize = 32, edgeSize = 32,
         insets = {left = 11, right = 12, top = 12, bottom = 11}
     })
@@ -405,6 +405,9 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     local newLines = GetTooltipLines(newItemLink)
     local eqLines = GetTooltipLines(equippedItemLink)
 
+    LootRoller:Debug("newLines count: " .. table.getn(newLines))
+    LootRoller:Debug("eqLines count: " .. table.getn(eqLines))
+
     -- Skip first line (item name) for comparison
     local newLinesNoName = {}
     local eqLinesNoName = {}
@@ -412,6 +415,7 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     for i = 2, table.getn(eqLines) do table.insert(eqLinesNoName, eqLines[i]) end
 
     local alignedPairs = AlignTooltipLines(newLinesNoName, eqLinesNoName)
+    LootRoller:Debug("alignedPairs count: " .. table.getn(alignedPairs))
 
     -- Render aligned lines
     local yOffset = 0
