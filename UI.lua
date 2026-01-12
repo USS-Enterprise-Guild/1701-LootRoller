@@ -365,10 +365,11 @@ function LootRoller.UI:AddStatLine(container, lines, text, yOffset, color)
     line:SetPoint("TOPLEFT", 0, yOffset)
     line:SetWidth(220)
     line:SetJustifyH("LEFT")
-    line:SetText(text)
+    line:SetText(text or "")
     if color then line:SetTextColor(color[1], color[2], color[3]) end
     table.insert(lines, line)
-    return line
+    -- Return actual rendered height (accounts for text wrapping)
+    return line:GetHeight()
 end
 
 function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLink)
@@ -419,7 +420,7 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
 
     -- Render aligned lines
     local yOffset = 0
-    local lineHeight = 13
+    local lineGap = 2  -- Small gap between rows
 
     for _, pair in ipairs(alignedPairs) do
         local leftLine = pair.left
@@ -434,7 +435,7 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
             end
         end
         local leftColor = GetComparisonColor(leftLine, rightLine, "left")
-        self:AddStatLine(popup.leftStats, popup.leftLines, leftText, yOffset, leftColor)
+        local leftHeight = self:AddStatLine(popup.leftStats, popup.leftLines, leftText, yOffset, leftColor)
 
         -- Right side
         local rightText = ""
@@ -445,9 +446,11 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
             end
         end
         local rightColor = GetComparisonColor(leftLine, rightLine, "right")
-        self:AddStatLine(popup.rightStats, popup.rightLines, rightText, yOffset, rightColor)
+        local rightHeight = self:AddStatLine(popup.rightStats, popup.rightLines, rightText, yOffset, rightColor)
 
-        yOffset = yOffset - lineHeight
+        -- Use the taller of the two lines for row height
+        local rowHeight = math.max(leftHeight or 13, rightHeight or 13)
+        yOffset = yOffset - rowHeight - lineGap
     end
 
     -- Update scroll child height
