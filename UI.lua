@@ -87,15 +87,25 @@ local function ClassifyLine(lineData)
             }
         end
     end
-    -- Non-stat line (could still be an enchant like "Lifestealing" or "Spell Damage +30")
-    -- If it's an enchant, give it statType "Enchant" so it pairs with blank, not other non-stats
+    -- Non-stat line - check for special line types that should align with matching lines
+    local pseudoType = nil
+    if isEnchant then
+        pseudoType = "Enchant"
+    elseif string.find(text, "^Unique") then
+        pseudoType = "Unique"
+    elseif string.find(text, "^Classes:") then
+        pseudoType = "Classes"
+    elseif string.find(text, "^Requires Level") then
+        pseudoType = "RequiresLevel"
+    end
+
     return {
         text = text,
         rightText = lineData.rightText,
         r = lineData.r,
         g = lineData.g,
         b = lineData.b,
-        statType = isEnchant and "Enchant" or nil,
+        statType = pseudoType,
         value = nil,
         isEnchant = isEnchant
     }
