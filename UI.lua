@@ -357,6 +357,16 @@ function LootRoller.UI:CreatePopupFrame()
     local scrollFrame = CreateFrame("ScrollFrame", frame:GetName() .. "ScrollFrame", frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", 15, -80)
     scrollFrame:SetPoint("BOTTOMRIGHT", -35, 50)
+    scrollFrame:EnableMouseWheel(true)
+    scrollFrame:SetScript("OnMouseWheel", function()
+        local scroll = this:GetVerticalScroll()
+        local maxScroll = this:GetVerticalScrollRange()
+        local delta = arg1 * 20  -- 20 pixels per scroll tick
+        scroll = scroll - delta
+        if scroll < 0 then scroll = 0 end
+        if scroll > maxScroll then scroll = maxScroll end
+        this:SetVerticalScroll(scroll)
+    end)
     frame.scrollFrame = scrollFrame
 
     -- Scroll child (content container)
@@ -553,6 +563,19 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     popup.rightStats:SetHeight(contentHeight)
     if popup.scrollDivider then
         popup.scrollDivider:SetHeight(contentHeight)
+    end
+
+    -- Update scroll bar range
+    local scrollFrame = popup.scrollFrame
+    if scrollFrame then
+        local scrollBar = getglobal(scrollFrame:GetName() .. "ScrollBar")
+        if scrollBar then
+            local visibleHeight = scrollFrame:GetHeight()
+            local maxScroll = contentHeight - visibleHeight
+            if maxScroll < 0 then maxScroll = 0 end
+            scrollBar:SetMinMaxValues(0, maxScroll)
+            scrollBar:SetValue(0)
+        end
     end
 end
 
