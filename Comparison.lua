@@ -48,7 +48,7 @@ function LootRoller.Comparison:GetSlotsForItem(itemLink)
     local _, _, id = string.find(itemLink, "item:(%d+)")
     if not id then return nil end
 
-    local name, link, quality, itemLevel, minLevel, itemType, itemSubType, stackCount, equipLoc = GetItemInfo(tonumber(id))
+    local name, link, quality, itemLevel, minLevel, itemType, itemSubType, stackCount, itemTexture, equipLoc = GetItemInfo(tonumber(id))
 
     LootRoller:Debug("GetItemInfo for " .. id .. ": equipLoc=" .. (equipLoc or "nil") .. ", type=" .. (itemType or "nil"))
 
