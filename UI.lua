@@ -246,7 +246,7 @@ function LootRoller.UI:CreatePopupFrame()
     divider:SetTexture(1, 1, 1, 0.3)
     divider:SetWidth(2)
     divider:SetHeight(40)  -- Just for header area now
-    divider:SetPoint("TOP", 0, -35)
+    divider:SetPoint("TOP", -10, -35)  -- Align with scroll divider (250 vs 260)
     frame.divider = divider
 
     local leftIcon = frame:CreateTexture(nil, "ARTWORK")
@@ -326,8 +326,11 @@ function LootRoller.UI:CreatePopupFrame()
     tmogBtn:SetPoint("RIGHT", -50, 0)
     frame.tmogBtn = tmogBtn
 
-    frame.leftLines = {}
-    frame.rightLines = {}
+    -- FontString pools for reuse (prevents memory accumulation)
+    frame.leftLinesPool = {}
+    frame.rightLinesPool = {}
+    frame.leftLineCount = 0
+    frame.rightLineCount = 0
     frame:Hide()
     return frame
 end
@@ -342,17 +345,18 @@ function LootRoller.UI:CreateRollButton(parent, text, onClick)
 end
 
 function LootRoller.UI:ClearStatLines(frame)
-    -- Hide and clear all line FontStrings
-    for _, line in ipairs(frame.leftLines or {}) do
+    -- Hide all FontStrings but keep them in pools for reuse
+    for _, line in ipairs(frame.leftLinesPool or {}) do
         line:Hide()
         line:SetText("")
     end
-    for _, line in ipairs(frame.rightLines or {}) do
+    for _, line in ipairs(frame.rightLinesPool or {}) do
         line:Hide()
         line:SetText("")
     end
-    frame.leftLines = {}
-    frame.rightLines = {}
+    -- Reset active line counts
+    frame.leftLineCount = 0
+    frame.rightLineCount = 0
 
     -- Reset scroll child height
     if frame.scrollChild then
@@ -360,14 +364,24 @@ function LootRoller.UI:ClearStatLines(frame)
     end
 end
 
-function LootRoller.UI:AddStatLine(container, lines, text, yOffset, color)
-    local line = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+function LootRoller.UI:AddStatLine(container, pool, count, text, yOffset, color)
+    local line
+    -- Reuse existing FontString from pool if available
+    if pool[count + 1] then
+        line = pool[count + 1]
+    else
+        -- Create new FontString and add to pool
+        line = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        line:SetWidth(220)
+        line:SetJustifyH("LEFT")
+        table.insert(pool, line)
+    end
+    -- Configure the line
+    line:ClearAllPoints()
     line:SetPoint("TOPLEFT", 0, yOffset)
-    line:SetWidth(220)
-    line:SetJustifyH("LEFT")
     line:SetText(text or "")
     if color then line:SetTextColor(color[1], color[2], color[3]) end
-    table.insert(lines, line)
+    line:Show()
     -- Return actual rendered height (accounts for text wrapping)
     return line:GetHeight()
 end
@@ -406,9 +420,6 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     local newLines = GetTooltipLines(newItemLink)
     local eqLines = GetTooltipLines(equippedItemLink)
 
-    LootRoller:Debug("newLines count: " .. table.getn(newLines))
-    LootRoller:Debug("eqLines count: " .. table.getn(eqLines))
-
     -- Skip first line (item name) for comparison
     local newLinesNoName = {}
     local eqLinesNoName = {}
@@ -416,7 +427,6 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     for i = 2, table.getn(eqLines) do table.insert(eqLinesNoName, eqLines[i]) end
 
     local alignedPairs = AlignTooltipLines(newLinesNoName, eqLinesNoName)
-    LootRoller:Debug("alignedPairs count: " .. table.getn(alignedPairs))
 
     -- Render aligned lines
     local yOffset = 0
@@ -435,7 +445,8 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
             end
         end
         local leftColor = GetComparisonColor(leftLine, rightLine, "left")
-        local leftHeight = self:AddStatLine(popup.leftStats, popup.leftLines, leftText, yOffset, leftColor)
+        local leftHeight = self:AddStatLine(popup.leftStats, popup.leftLinesPool, popup.leftLineCount, leftText, yOffset, leftColor)
+        popup.leftLineCount = popup.leftLineCount + 1
 
         -- Right side
         local rightText = ""
@@ -446,7 +457,8 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
             end
         end
         local rightColor = GetComparisonColor(leftLine, rightLine, "right")
-        local rightHeight = self:AddStatLine(popup.rightStats, popup.rightLines, rightText, yOffset, rightColor)
+        local rightHeight = self:AddStatLine(popup.rightStats, popup.rightLinesPool, popup.rightLineCount, rightText, yOffset, rightColor)
+        popup.rightLineCount = popup.rightLineCount + 1
 
         -- Use the taller of the two lines for row height
         local rowHeight = math.max(leftHeight or 13, rightHeight or 13)
