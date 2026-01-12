@@ -75,6 +75,16 @@ local function ClassifyLine(lineData)
 end
 
 -- Align two tooltip line lists by stat type, inserting blanks as needed
+-- Check if a stat type exists in list starting from index
+local function HasStatTypeAfter(list, startIndex, statType)
+    for i = startIndex, table.getn(list) do
+        if list[i].statType == statType then
+            return true
+        end
+    end
+    return false
+end
+
 local function AlignTooltipLines(leftLines, rightLines)
     local result = {}
     local leftClassified = {}
@@ -118,17 +128,43 @@ local function AlignTooltipLines(leftLines, rightLines)
             li = li + 1
             ri = ri + 1
         elseif leftLine.statType and not rightLine.statType then
-            -- Left has stat, right has non-stat: output left stat with blank, advance left only
-            table.insert(result, {left = leftLine, right = nil})
-            li = li + 1
+            -- Left has stat, right has non-stat
+            -- Check if left's stat type exists later in right - if so, save it for matching
+            if HasStatTypeAfter(rightClassified, ri + 1, leftLine.statType) then
+                table.insert(result, {left = nil, right = rightLine})
+                ri = ri + 1
+            else
+                table.insert(result, {left = leftLine, right = nil})
+                li = li + 1
+            end
         elseif not leftLine.statType and rightLine.statType then
-            -- Left has non-stat, right has stat: output right stat with blank, advance right only
-            table.insert(result, {left = nil, right = rightLine})
-            ri = ri + 1
+            -- Left has non-stat, right has stat
+            -- Check if right's stat type exists later in left - if so, save it for matching
+            if HasStatTypeAfter(leftClassified, li + 1, rightLine.statType) then
+                table.insert(result, {left = leftLine, right = nil})
+                li = li + 1
+            else
+                table.insert(result, {left = nil, right = rightLine})
+                ri = ri + 1
+            end
         else
-            -- Both stats but different types: output left with blank, advance left only
-            table.insert(result, {left = leftLine, right = nil})
-            li = li + 1
+            -- Both stats but different types
+            -- Check if either stat exists on the other side later
+            local leftExistsInRight = HasStatTypeAfter(rightClassified, ri + 1, leftLine.statType)
+            local rightExistsInLeft = HasStatTypeAfter(leftClassified, li + 1, rightLine.statType)
+            if leftExistsInRight and not rightExistsInLeft then
+                -- Right's stat won't match, output it
+                table.insert(result, {left = nil, right = rightLine})
+                ri = ri + 1
+            elseif rightExistsInLeft and not leftExistsInRight then
+                -- Left's stat won't match, output it
+                table.insert(result, {left = leftLine, right = nil})
+                li = li + 1
+            else
+                -- Either both will match later or neither will - output left first
+                table.insert(result, {left = leftLine, right = nil})
+                li = li + 1
+            end
         end
     end
 
