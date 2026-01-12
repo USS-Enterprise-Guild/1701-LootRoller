@@ -1,11 +1,11 @@
 ## Interface: 11200
-## Title: LootRoller
+## Title: 1701 Addons - Loot Roller
 ## Notes: RollFor companion - shows item comparison and quick roll buttons
 ## Author: USS Enterprise Guild
 ## Version: 1.0.0
 ## SavedVariables: LootRoller_Settings
 
-LootRoller.lua
+1701-LootRoller.lua
 Settings.lua
 Detection.lua
 Comparison.lua
