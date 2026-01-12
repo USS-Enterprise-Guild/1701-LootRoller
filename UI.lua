@@ -575,16 +575,43 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
         popup.scrollDivider:SetHeight(contentHeight)
     end
 
-    -- Update scroll bar range
+    -- Update scroll bar range and visibility
     local scrollFrame = popup.scrollFrame
     if scrollFrame then
-        local scrollBar = getglobal(scrollFrame:GetName() .. "ScrollBar")
+        local scrollBarName = scrollFrame:GetName() .. "ScrollBar"
+        local scrollBar = getglobal(scrollBarName)
         if scrollBar then
             local visibleHeight = scrollFrame:GetHeight()
             local maxScroll = contentHeight - visibleHeight
             if maxScroll < 0 then maxScroll = 0 end
             scrollBar:SetMinMaxValues(0, maxScroll)
             scrollBar:SetValue(0)
+
+            -- Show/hide scroll bar based on whether scrolling is needed
+            if maxScroll > 0 then
+                scrollBar:Show()
+                -- Set up scroll bar value changed handler
+                scrollBar:SetScript("OnValueChanged", function()
+                    scrollFrame:SetVerticalScroll(this:GetValue())
+                end)
+                -- Set up button scripts
+                local upBtn = getglobal(scrollBarName .. "ScrollUpButton")
+                local downBtn = getglobal(scrollBarName .. "ScrollDownButton")
+                if upBtn then
+                    upBtn:SetScript("OnClick", function()
+                        local current = scrollBar:GetValue()
+                        scrollBar:SetValue(current - 20)
+                    end)
+                end
+                if downBtn then
+                    downBtn:SetScript("OnClick", function()
+                        local current = scrollBar:GetValue()
+                        scrollBar:SetValue(current + 20)
+                    end)
+                end
+            else
+                scrollBar:Hide()
+            end
         end
     end
 end
