@@ -587,30 +587,59 @@ function LootRoller.UI:DoRoll(popup, rollType)
     self:HidePopup(popup)
 end
 
+-- Sample raid/dungeon items for testing (various slots and qualities)
+local TEST_ITEM_IDS = {
+    16795,  -- Arcanist Crown (Mage T1 Head)
+    16802,  -- Arcanist Leggings (Mage T1 Legs)
+    16914,  -- Netherwind Crown (Mage T2 Head)
+    16922,  -- Leggings of Transcendence (Priest T2 Legs)
+    16963,  -- Helm of Wrath (Warrior T2 Head)
+    17102,  -- Cloak of the Shrouded Mists (MC)
+    17103,  -- Azuresong Mageblade (MC)
+    18814,  -- Choker of the Fire Lord (Ragnaros)
+    19375,  -- Mish'undare, Circlet of the Mind Flayer (Nef)
+    19377,  -- Prestor's Talisman of Connivery (Nef)
+    19379,  -- Neltharion's Tear (Nef)
+    21134,  -- Dark Storm Gauntlets (AQ40)
+    21126,  -- Death's Sting (AQ40)
+    22691,  -- Corrupted Ashbringer (Naxx)
+}
+
 function LootRoller.UI:ShowTestItem()
     if not LootRoller.Settings:Get("enabled") then LootRoller:Print("Addon disabled"); return end
-    local testLink = nil
-    local slots = {"HeadSlot", "NeckSlot", "ShoulderSlot", "BackSlot", "ChestSlot",
-        "WristSlot", "HandsSlot", "WaistSlot", "LegsSlot", "FeetSlot",
-        "Finger0Slot", "Finger1Slot", "Trinket0Slot", "Trinket1Slot",
-        "MainHandSlot", "SecondaryHandSlot", "RangedSlot"}
-    for _, slotName in ipairs(slots) do
-        local slotId = GetInventorySlotInfo(slotName)
-        if slotId then
-            local link = GetInventoryItemLink("player", slotId)
-            if link then testLink = link; break end
-        end
-    end
-    if not testLink then
-        for bag = 0, 4 do
-            for slot = 1, GetContainerNumSlots(bag) do
-                local link = GetContainerItemLink(bag, slot)
-                if link then testLink = link; break end
+
+    -- Pick a random item from the test list
+    local itemId = TEST_ITEM_IDS[math.random(1, table.getn(TEST_ITEM_IDS))]
+
+    -- Check if item is cached
+    local name, link, quality = GetItemInfo(itemId)
+
+    if not name then
+        -- Item not cached, request it and retry
+        LootRoller:Print("Loading item " .. itemId .. " into cache...")
+        local retryFrame = CreateFrame("Frame")
+        retryFrame.elapsed = 0
+        retryFrame.itemId = itemId
+        retryFrame.attempts = 0
+        retryFrame:SetScript("OnUpdate", function()
+            this.elapsed = this.elapsed + arg1
+            if this.elapsed > 0.5 then
+                this.elapsed = 0
+                this.attempts = this.attempts + 1
+                local n, l = GetItemInfo(this.itemId)
+                if n then
+                    LootRoller:Print("Testing with: " .. l)
+                    LootRoller.UI:ShowItem(l)
+                    this:SetScript("OnUpdate", nil)
+                elseif this.attempts > 10 then
+                    LootRoller:Print("Failed to load item " .. this.itemId .. " after 5 seconds")
+                    this:SetScript("OnUpdate", nil)
+                end
             end
-            if testLink then break end
-        end
+        end)
+        return
     end
-    if not testLink then LootRoller:Print("No items found to test with"); return end
-    LootRoller:Print("Testing with: " .. testLink)
-    self:ShowItem(testLink)
+
+    LootRoller:Print("Testing with: " .. link)
+    self:ShowItem(link)
 end
