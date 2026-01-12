@@ -47,14 +47,18 @@ local EQUIP_LOC_TO_SLOTS = {
 function LootRoller.Comparison:GetSlotsForItem(itemLink)
     local _, _, id = string.find(itemLink, "item:(%d+)")
     if not id then return nil end
-    
-    local _, _, _, _, _, _, _, _, equipLoc = GetItemInfo(tonumber(id))
+
+    local name, link, quality, itemLevel, minLevel, itemType, itemSubType, stackCount, equipLoc = GetItemInfo(tonumber(id))
+
+    LootRoller:Debug("GetItemInfo for " .. id .. ": equipLoc=" .. (equipLoc or "nil") .. ", type=" .. (itemType or "nil"))
 
     if not equipLoc or equipLoc == "" then
         return nil
     end
 
-    return EQUIP_LOC_TO_SLOTS[equipLoc]
+    local slots = EQUIP_LOC_TO_SLOTS[equipLoc]
+    LootRoller:Debug("EQUIP_LOC_TO_SLOTS[" .. equipLoc .. "] = " .. (slots and slots[1] or "nil"))
+    return slots
 end
 
 function LootRoller.Comparison:GetEquippedItemLink(slotId)

@@ -505,7 +505,11 @@ function LootRoller.UI:ShowItem(itemLink)
     end
     local equippedLink = nil
     local slots = LootRoller.Comparison:GetSlotsForItem(itemLink)
-    if slots and slots[1] then equippedLink = GetInventoryItemLink("player", slots[1]) end
+    LootRoller:Debug("GetSlotsForItem returned: " .. (slots and ("slot " .. slots[1]) or "nil"))
+    if slots and slots[1] then
+        equippedLink = GetInventoryItemLink("player", slots[1])
+        LootRoller:Debug("Equipped in slot " .. slots[1] .. ": " .. (equippedLink or "empty"))
+    end
     local mode = LootRoller.Settings:Get("multiItemMode")
     local popup
     if mode == "replace" then
