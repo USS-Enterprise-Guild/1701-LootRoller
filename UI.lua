@@ -87,14 +87,15 @@ local function ClassifyLine(lineData)
             }
         end
     end
-    -- Non-stat line (could still be an enchant like "Lifestealing")
+    -- Non-stat line (could still be an enchant like "Lifestealing" or "Spell Damage +30")
+    -- If it's an enchant, give it statType "Enchant" so it pairs with blank, not other non-stats
     return {
         text = text,
         rightText = lineData.rightText,
         r = lineData.r,
         g = lineData.g,
         b = lineData.b,
-        statType = nil,
+        statType = isEnchant and "Enchant" or nil,
         value = nil,
         isEnchant = isEnchant
     }
@@ -170,7 +171,6 @@ local function AlignTooltipLines(leftLines, rightLines)
                 table.insert(result, {left = leftLine, right = nil})
                 li = li + 1
             else
-                LootRoller:Debug("Pairing nil with right stat: " .. (rightLine.statType or "nil") .. " text: " .. (rightLine.text or ""))
                 table.insert(result, {left = nil, right = rightLine})
                 ri = ri + 1
             end
@@ -179,7 +179,6 @@ local function AlignTooltipLines(leftLines, rightLines)
             -- Check if either stat exists on the other side later
             local leftExistsInRight = HasStatTypeAfter(rightClassified, ri + 1, leftLine.statType)
             local rightExistsInLeft = HasStatTypeAfter(leftClassified, li + 1, rightLine.statType)
-            LootRoller:Debug("Both stats diff types - L:" .. (leftLine.statType or "nil") .. " R:" .. (rightLine.statType or "nil") .. " LexistsR:" .. tostring(leftExistsInRight) .. " RexistsL:" .. tostring(rightExistsInLeft))
             if leftExistsInRight and not rightExistsInLeft then
                 -- Right's stat won't match, output it
                 table.insert(result, {left = nil, right = rightLine})
