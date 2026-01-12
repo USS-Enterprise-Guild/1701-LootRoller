@@ -390,27 +390,24 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
     self:ClearStatLines(popup)
 
     -- Get item info for headers
-    -- TurtleWoW: 1=name, 2=link, 3=quality, 4=itemLevel, 5=itemType, 6=itemSubType, 7=stackCount, 8=equipLoc, 9=texture
     local newId = GetItemId(newItemLink)
-    local newName, _, newQuality, _, _, _, _, _, newTexture
-    if newId then newName, _, newQuality, _, _, _, _, _, newTexture = GetItemInfo(newId) end
+    local newInfo = newId and LootRoller.Comparison:GetItemInfoTurtle(newId) or {}
 
     local eqId = GetItemId(equippedItemLink)
-    local eqName, _, eqQuality, _, _, _, _, _, eqTexture
-    if eqId then eqName, _, eqQuality, _, _, _, _, _, eqTexture = GetItemInfo(eqId) end
+    local eqInfo = eqId and LootRoller.Comparison:GetItemInfoTurtle(eqId) or {}
 
     -- Set icons and names
-    if newTexture then popup.leftIcon:SetTexture(newTexture); popup.leftIcon:Show()
+    if newInfo.texture then popup.leftIcon:SetTexture(newInfo.texture); popup.leftIcon:Show()
     else popup.leftIcon:Hide() end
-    popup.leftName:SetText(newName or "Unknown Item")
-    local newQC = QUALITY_COLORS[newQuality or 1] or QUALITY_COLORS[1]
+    popup.leftName:SetText(newInfo.name or "Unknown Item")
+    local newQC = QUALITY_COLORS[newInfo.quality or 1] or QUALITY_COLORS[1]
     popup.leftName:SetTextColor(newQC[1], newQC[2], newQC[3])
 
-    if eqTexture then popup.rightIcon:SetTexture(eqTexture); popup.rightIcon:Show()
+    if eqInfo.texture then popup.rightIcon:SetTexture(eqInfo.texture); popup.rightIcon:Show()
     else popup.rightIcon:Hide() end
     if equippedItemLink then
-        popup.rightName:SetText(eqName or "Unknown")
-        local eqQC = QUALITY_COLORS[eqQuality or 1] or QUALITY_COLORS[1]
+        popup.rightName:SetText(eqInfo.name or "Unknown")
+        local eqQC = QUALITY_COLORS[eqInfo.quality or 1] or QUALITY_COLORS[1]
         popup.rightName:SetTextColor(eqQC[1], eqQC[2], eqQC[3])
     else
         popup.rightName:SetText("(Empty Slot)")
