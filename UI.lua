@@ -49,16 +49,20 @@ local STAT_PATTERNS = {
     {pattern = "Restores (%d+) health per 5 sec", stat = "HP5"},
 }
 
--- Check if a line is an enchant (green color but NOT an Equip: effect)
+-- Check if a line is an enchant (green color but NOT other green effects)
 local function IsEnchantLine(r, g, b, text)
     if not r or not g or not b then return false end
     -- Must be green colored
     local isGreen = g > 0.9 and r < 0.2 and b < 0.2
     if not isGreen then return false end
-    -- Equip: effects are also green, but they start with "Equip:"
-    -- Enchants don't have this prefix
-    if text and string.find(text, "^Equip:") then return false end
-    LootRoller:Debug("ENCHANT DETECTED: " .. (text or "nil"))
+    if not text then return false end
+    -- Exclude other green effects that aren't enchants
+    if string.find(text, "^Equip:") then return false end        -- Equip effects
+    if string.find(text, "^Chance on hit:") then return false end -- Proc effects
+    if string.find(text, "^Use:") then return false end          -- Use effects
+    if string.find(text, "^%(") then return false end            -- Set bonuses like "(2) Set:"
+    if string.find(text, "Set:") then return false end           -- Set bonuses
+    LootRoller:Debug("ENCHANT DETECTED: " .. text)
     return true
 end
 
