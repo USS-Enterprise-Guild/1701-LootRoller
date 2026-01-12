@@ -44,18 +44,34 @@ local EQUIP_LOC_TO_SLOTS = {
     INVTYPE_RELIC = {18},
 }
 
+-- TurtleWoW GetItemInfo return order:
+-- 1=name, 2=link, 3=quality, 4=itemLevel, 5=itemType, 6=itemSubType, 7=stackCount, 8=equipLoc, 9=texture
+function LootRoller.Comparison:GetItemInfoTurtle(itemId)
+    local name, link, quality, itemLevel, itemType, itemSubType, stackCount, equipLoc, texture = GetItemInfo(itemId)
+    return {
+        name = name,
+        link = link,
+        quality = quality,
+        itemLevel = itemLevel,
+        itemType = itemType,
+        itemSubType = itemSubType,
+        stackCount = stackCount,
+        equipLoc = equipLoc,
+        texture = texture,
+    }
+end
+
 function LootRoller.Comparison:GetSlotsForItem(itemLink)
     local _, _, id = string.find(itemLink, "item:(%d+)")
     if not id then return nil end
 
-    -- TurtleWoW return order: name, link, quality, itemLevel, minLevel, itemType, itemSubType, equipLoc, ...
-    local _, _, _, _, _, _, _, equipLoc = GetItemInfo(tonumber(id))
+    local info = self:GetItemInfoTurtle(tonumber(id))
 
-    if not equipLoc or equipLoc == "" then
+    if not info.equipLoc or info.equipLoc == "" then
         return nil
     end
 
-    return EQUIP_LOC_TO_SLOTS[equipLoc]
+    return EQUIP_LOC_TO_SLOTS[info.equipLoc]
 end
 
 function LootRoller.Comparison:GetEquippedItemLink(slotId)
