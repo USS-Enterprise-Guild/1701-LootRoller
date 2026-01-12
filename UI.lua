@@ -170,6 +170,7 @@ local function AlignTooltipLines(leftLines, rightLines)
                 table.insert(result, {left = leftLine, right = nil})
                 li = li + 1
             else
+                LootRoller:Debug("Pairing nil with right stat: " .. (rightLine.statType or "nil") .. " text: " .. (rightLine.text or ""))
                 table.insert(result, {left = nil, right = rightLine})
                 ri = ri + 1
             end
@@ -178,6 +179,7 @@ local function AlignTooltipLines(leftLines, rightLines)
             -- Check if either stat exists on the other side later
             local leftExistsInRight = HasStatTypeAfter(rightClassified, ri + 1, leftLine.statType)
             local rightExistsInLeft = HasStatTypeAfter(leftClassified, li + 1, rightLine.statType)
+            LootRoller:Debug("Both stats diff types - L:" .. (leftLine.statType or "nil") .. " R:" .. (rightLine.statType or "nil") .. " LexistsR:" .. tostring(leftExistsInRight) .. " RexistsL:" .. tostring(rightExistsInLeft))
             if leftExistsInRight and not rightExistsInLeft then
                 -- Right's stat won't match, output it
                 table.insert(result, {left = nil, right = rightLine})
@@ -513,13 +515,10 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
         local leftLine = pair.left
         local rightLine = pair.right
 
-        -- Left side
+        -- Left side (new item - never has enchants)
         local leftText = ""
         if leftLine then
             leftText = leftLine.text or ""
-            if leftLine.isEnchant then
-                leftText = "Enchant: " .. leftText
-            end
             if leftLine.rightText and leftLine.rightText ~= "" then
                 leftText = leftText .. "  " .. leftLine.rightText
             end
