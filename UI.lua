@@ -62,7 +62,6 @@ local function IsEnchantLine(r, g, b, text)
     if string.find(text, "^Use:") then return false end          -- Use effects
     if string.find(text, "^%(") then return false end            -- Set bonuses like "(2) Set:"
     if string.find(text, "Set:") then return false end           -- Set bonuses
-    LootRoller:Debug("ENCHANT DETECTED: " .. text)
     return true
 end
 
@@ -76,17 +75,13 @@ local function ClassifyLine(lineData)
     for _, patternInfo in ipairs(STAT_PATTERNS) do
         local _, _, value = string.find(text, patternInfo.pattern)
         if value then
-            local statType = isEnchant and "Enchant" or patternInfo.stat
-            if isEnchant then
-                LootRoller:Debug("Classified as ENCHANT (was " .. patternInfo.stat .. "): " .. text)
-            end
             return {
                 text = text,
                 rightText = lineData.rightText,
                 r = lineData.r,
                 g = lineData.g,
                 b = lineData.b,
-                statType = statType,
+                statType = isEnchant and "Enchant" or patternInfo.stat,
                 value = tonumber(value),
                 isEnchant = isEnchant
             }
@@ -522,6 +517,9 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
         local leftText = ""
         if leftLine then
             leftText = leftLine.text or ""
+            if leftLine.isEnchant then
+                leftText = "Enchant: " .. leftText
+            end
             if leftLine.rightText and leftLine.rightText ~= "" then
                 leftText = leftText .. "  " .. leftLine.rightText
             end
@@ -534,6 +532,9 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
         local rightText = ""
         if rightLine then
             rightText = rightLine.text or ""
+            if rightLine.isEnchant then
+                rightText = "Enchant: " .. rightText
+            end
             if rightLine.rightText and rightLine.rightText ~= "" then
                 rightText = rightText .. "  " .. rightLine.rightText
             end
