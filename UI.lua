@@ -49,9 +49,21 @@ local STAT_PATTERNS = {
     {pattern = "Restores (%d+) health per 5 sec", stat = "HP5"},
 }
 
+-- Check if a line is an enchant (green color in WoW tooltips)
+local function IsEnchantLine(r, g, b)
+    -- Enchants are displayed in green: approximately (0, 1, 0)
+    -- Allow some tolerance for color variations
+    if not r or not g or not b then return false end
+    return g > 0.9 and r < 0.2 and b < 0.2
+end
+
 -- Classify a tooltip line: identify stat type and value if applicable
 local function ClassifyLine(lineData)
     local text = lineData.text or ""
+
+    -- Check if this is an enchant line (green colored)
+    local isEnchant = IsEnchantLine(lineData.r, lineData.g, lineData.b)
+
     for _, patternInfo in ipairs(STAT_PATTERNS) do
         local _, _, value = string.find(text, patternInfo.pattern)
         if value then
@@ -61,12 +73,13 @@ local function ClassifyLine(lineData)
                 r = lineData.r,
                 g = lineData.g,
                 b = lineData.b,
-                statType = patternInfo.stat,
-                value = tonumber(value)
+                statType = isEnchant and "Enchant" or patternInfo.stat,
+                value = tonumber(value),
+                isEnchant = isEnchant
             }
         end
     end
-    -- Non-stat line
+    -- Non-stat line (could still be an enchant like "Lifestealing")
     return {
         text = text,
         rightText = lineData.rightText,
@@ -74,7 +87,8 @@ local function ClassifyLine(lineData)
         g = lineData.g,
         b = lineData.b,
         statType = nil,
-        value = nil
+        value = nil,
+        isEnchant = isEnchant
     }
 end
 
@@ -178,6 +192,13 @@ end
 -- Get color for a line based on stat comparison
 -- side: "left" (loot item) or "right" (equipped item)
 local function GetComparisonColor(leftLine, rightLine, side)
+    -- Enchants keep their original color (green) - don't apply comparison coloring
+    if side == "left" and leftLine and leftLine.isEnchant then
+        return {leftLine.r or 0, leftLine.g or 1, leftLine.b or 0}
+    elseif side == "right" and rightLine and rightLine.isEnchant then
+        return {rightLine.r or 0, rightLine.g or 1, rightLine.b or 0}
+    end
+
     -- Both have same stat type - compare values
     if leftLine and rightLine and leftLine.statType and rightLine.statType then
         if leftLine.statType == rightLine.statType and leftLine.value and rightLine.value then
