@@ -20,14 +20,43 @@ local QUALITY_COLORS = {
     [5] = {1, 0.5, 0},
 }
 
+-- Map equip location to inventory slot ID for TMOG_CACHE lookup
+local EQUIP_LOC_TO_SLOT = {
+    INVTYPE_HEAD = 1,
+    INVTYPE_SHOULDER = 3,
+    INVTYPE_BODY = 4,
+    INVTYPE_CHEST = 5,
+    INVTYPE_ROBE = 5,
+    INVTYPE_WAIST = 6,
+    INVTYPE_LEGS = 7,
+    INVTYPE_FEET = 8,
+    INVTYPE_WRIST = 9,
+    INVTYPE_HAND = 10,
+    INVTYPE_CLOAK = 15,
+    INVTYPE_2HWEAPON = 16,
+    INVTYPE_WEAPON = 16,
+    INVTYPE_WEAPONMAINHAND = 16,
+    INVTYPE_WEAPONOFFHAND = 17,
+    INVTYPE_HOLDABLE = 17,
+    INVTYPE_SHIELD = 17,
+    INVTYPE_RANGED = 18,
+    INVTYPE_RANGEDRIGHT = 18,
+    INVTYPE_THROWN = 18,
+    INVTYPE_TABARD = 19,
+}
+
 -- Check if item appearance is in transmog collection (requires Tmog addon)
 local function GetTmogCollectionStatus(itemId, equipLoc)
     -- Check if Tmog addon is loaded
     if not TMOG_CACHE then return nil end
     if not itemId or not equipLoc or equipLoc == "" then return nil end
 
+    -- Convert equip location to slot ID
+    local slotId = EQUIP_LOC_TO_SLOT[equipLoc]
+    if not slotId then return nil end
+
     -- Check if this appearance is collected
-    if TMOG_CACHE[equipLoc] and TMOG_CACHE[equipLoc][itemId] then
+    if TMOG_CACHE[slotId] and TMOG_CACHE[slotId][itemId] then
         return true
     end
     return false
