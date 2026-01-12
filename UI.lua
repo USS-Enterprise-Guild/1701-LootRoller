@@ -50,10 +50,14 @@ local STAT_PATTERNS = {
 }
 
 -- Check if a line is an enchant (green color in WoW tooltips)
-local function IsEnchantLine(r, g, b)
+local function IsEnchantLine(r, g, b, text)
     -- Enchants are displayed in green: approximately (0, 1, 0)
     -- Allow some tolerance for color variations
     if not r or not g or not b then return false end
+    -- Debug: print color values for lines that might be enchants
+    if g > 0.5 and r < 0.5 and b < 0.5 then
+        LootRoller:Debug("Potential enchant - r:" .. string.format("%.2f", r) .. " g:" .. string.format("%.2f", g) .. " b:" .. string.format("%.2f", b) .. " text:" .. (text or ""))
+    end
     return g > 0.9 and r < 0.2 and b < 0.2
 end
 
@@ -62,7 +66,7 @@ local function ClassifyLine(lineData)
     local text = lineData.text or ""
 
     -- Check if this is an enchant line (green colored)
-    local isEnchant = IsEnchantLine(lineData.r, lineData.g, lineData.b)
+    local isEnchant = IsEnchantLine(lineData.r, lineData.g, lineData.b, text)
 
     for _, patternInfo in ipairs(STAT_PATTERNS) do
         local _, _, value = string.find(text, patternInfo.pattern)
