@@ -349,6 +349,26 @@ function LootRoller.UI:CreatePopupFrame()
     leftIcon:SetPoint("TOPLEFT", 20, -35)
     frame.leftIcon = leftIcon
 
+    -- Clickable button over left icon for dress-up preview
+    local leftIconBtn = CreateFrame("Button", nil, frame)
+    leftIconBtn:SetWidth(37)
+    leftIconBtn:SetHeight(37)
+    leftIconBtn:SetPoint("TOPLEFT", leftIcon, "TOPLEFT", 0, 0)
+    leftIconBtn:SetScript("OnClick", function()
+        if this:GetParent().itemLink then
+            DressUpItemLink(this:GetParent().itemLink)
+        end
+    end)
+    leftIconBtn:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Click to preview")
+        GameTooltip:Show()
+    end)
+    leftIconBtn:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    frame.leftIconBtn = leftIconBtn
+
     local leftName = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     leftName:SetPoint("TOPLEFT", leftIcon, "TOPRIGHT", 8, -2)
     leftName:SetWidth(180)
