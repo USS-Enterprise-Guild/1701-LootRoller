@@ -42,8 +42,30 @@ function LootRoller.Detection:OnEvent(event, arg1, arg2, arg3, arg4)
     end
 end
 
+-- Patterns that indicate a roll is starting (case-insensitive check)
+local ROLL_TRIGGER_PATTERNS = {
+    "^[Rr]oll for",           -- "Roll for [Item]"
+    "^[Rr]olling for",        -- "Rolling for [Item]"
+    "^[Ss]oft [Rr]eserve",    -- "Soft Reserve [Item]"
+    "^SR:",                   -- "SR: [Item]"
+    "/roll .+ now",           -- RollFor style: "/roll [Item] now"
+}
+
 function LootRoller.Detection:ParseChatForItems(message)
     if not message then return end
+
+    -- Check if message matches any roll trigger pattern
+    local isRollTrigger = false
+    for _, pattern in ipairs(ROLL_TRIGGER_PATTERNS) do
+        if string.find(message, pattern) then
+            isRollTrigger = true
+            break
+        end
+    end
+
+    if not isRollTrigger then
+        return
+    end
 
     -- Pattern for item links: |cffxxxxxx|Hitem:itemId:...|h[Name]|h|r
     local _, _, itemId = string.find(message, "|c%x+|Hitem:(%d+).-%|h%[.-%]|h|r")
