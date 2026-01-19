@@ -679,6 +679,55 @@ function LootRoller.UI:ClearStatLines(frame)
     end
 end
 
+-- Add a stat line with optional split coloring for equipment type
+-- If equipTypeColor is provided, the equipType portion uses that color
+function LootRoller.UI:AddStatLineSplit(container, pool, count, slotText, equipType, yOffset, slotColor, equipTypeColor)
+    local line
+    -- Reuse existing FontString from pool if available
+    if pool[count + 1] then
+        line = pool[count + 1]
+    else
+        -- Create new FontString and add to pool
+        line = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        line:SetWidth(220)
+        line:SetJustifyH("LEFT")
+        table.insert(pool, line)
+    end
+    -- Configure the line
+    line:ClearAllPoints()
+    line:SetPoint("TOPLEFT", 0, yOffset)
+
+    -- Build the text with color codes
+    local text = ""
+    if slotText and slotText ~= "" then
+        if slotColor then
+            text = string.format("|cff%02x%02x%02x%s|r ",
+                math.floor(slotColor[1] * 255),
+                math.floor(slotColor[2] * 255),
+                math.floor(slotColor[3] * 255),
+                slotText)
+        else
+            text = slotText .. " "
+        end
+    end
+    if equipType then
+        if equipTypeColor then
+            text = text .. string.format("|cff%02x%02x%02x%s|r",
+                math.floor(equipTypeColor[1] * 255),
+                math.floor(equipTypeColor[2] * 255),
+                math.floor(equipTypeColor[3] * 255),
+                equipType)
+        else
+            text = text .. equipType
+        end
+    end
+
+    line:SetText(text)
+    line:SetTextColor(1, 1, 1)  -- Base color white, actual colors via escape codes
+    line:Show()
+    return line:GetHeight()
+end
+
 function LootRoller.UI:AddStatLine(container, pool, count, text, yOffset, color)
     local line
     -- Reuse existing FontString from pool if available
