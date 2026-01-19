@@ -10,6 +10,7 @@ local COLOR_BETTER = {0.1, 1, 0.1}
 local COLOR_WORSE = {1, 0.1, 0.1}
 local COLOR_NEUTRAL = {1, 1, 1}
 local COLOR_HEADER = {1, 0.82, 0}
+local COLOR_SUBOPTIMAL = {1, 1, 0}  -- Yellow for usable but not preferred
 
 local QUALITY_COLORS = {
     [0] = {0.6, 0.6, 0.6},
@@ -18,6 +19,102 @@ local QUALITY_COLORS = {
     [3] = {0, 0.44, 0.87},
     [4] = {0.64, 0.21, 0.93},
     [5] = {1, 0.5, 0},
+}
+
+-- Equipment proficiency by class
+local CLASS_PROFICIENCY = {
+    WARRIOR = {
+        Cloth = true, Leather = true, Mail = true, Plate = true,
+        Axe = true, ["Two-Handed Axe"] = true,
+        Sword = true, ["Two-Handed Sword"] = true,
+        Mace = true, ["Two-Handed Mace"] = true,
+        Dagger = true, ["Fist Weapon"] = true, Polearm = true, Staff = true,
+        Bow = true, Crossbow = true, Gun = true, Thrown = true,
+        Shield = true,
+    },
+    PALADIN = {
+        Cloth = true, Leather = true, Mail = true, Plate = true,
+        Axe = true, ["Two-Handed Axe"] = true,
+        Sword = true, ["Two-Handed Sword"] = true,
+        Mace = true, ["Two-Handed Mace"] = true,
+        Polearm = true,
+        Shield = true,
+    },
+    HUNTER = {
+        Cloth = true, Leather = true, Mail = true,
+        Axe = true, ["Two-Handed Axe"] = true,
+        Sword = true, ["Two-Handed Sword"] = true,
+        Dagger = true, ["Fist Weapon"] = true, Polearm = true, Staff = true,
+        Bow = true, Crossbow = true, Gun = true,
+    },
+    SHAMAN = {
+        Cloth = true, Leather = true, Mail = true,
+        Axe = true, ["Two-Handed Axe"] = true,
+        Mace = true, ["Two-Handed Mace"] = true,
+        Dagger = true, ["Fist Weapon"] = true, Staff = true,
+        Shield = true,
+    },
+    ROGUE = {
+        Cloth = true, Leather = true,
+        Axe = true,
+        Sword = true,
+        Mace = true,
+        Dagger = true, ["Fist Weapon"] = true,
+        Bow = true, Crossbow = true, Gun = true, Thrown = true,
+    },
+    DRUID = {
+        Cloth = true, Leather = true,
+        Mace = true, ["Two-Handed Mace"] = true,
+        Dagger = true, ["Fist Weapon"] = true, Polearm = true, Staff = true,
+    },
+    MAGE = {
+        Cloth = true,
+        Sword = true,
+        Dagger = true, Staff = true, Wand = true,
+    },
+    WARLOCK = {
+        Cloth = true,
+        Sword = true,
+        Dagger = true, Staff = true, Wand = true,
+    },
+    PRIEST = {
+        Cloth = true,
+        Mace = true,
+        Dagger = true, Staff = true, Wand = true,
+    },
+}
+
+-- Preferred (optimal) armor type by class
+local CLASS_PREFERRED_ARMOR = {
+    WARRIOR = "Plate",
+    PALADIN = "Plate",
+    HUNTER = "Mail",
+    SHAMAN = "Mail",
+    ROGUE = "Leather",
+    DRUID = "Leather",
+    MAGE = "Cloth",
+    WARLOCK = "Cloth",
+    PRIEST = "Cloth",
+}
+
+-- Armor types (for checking if equipment type is armor)
+local ARMOR_TYPES = {
+    Cloth = true,
+    Leather = true,
+    Mail = true,
+    Plate = true,
+}
+
+-- All equipment types we recognize (for pattern matching)
+local EQUIPMENT_TYPES = {
+    -- Armor
+    "Cloth", "Leather", "Mail", "Plate",
+    -- Weapons (order matters - longer patterns first)
+    "Two-Handed Axe", "Two-Handed Sword", "Two-Handed Mace",
+    "Fist Weapon", "Polearm", "Staff",
+    "Axe", "Sword", "Mace", "Dagger",
+    "Bow", "Crossbow", "Gun", "Thrown", "Wand",
+    "Shield",
 }
 
 -- Map equip location to inventory slot ID for TMOG_CACHE lookup
