@@ -117,6 +117,51 @@ local EQUIPMENT_TYPES = {
     "Shield",
 }
 
+-- Check if player can equip a given equipment type
+local function CanPlayerEquipType(equipType)
+    local _, classToken = UnitClass("player")
+    local proficiencies = CLASS_PROFICIENCY[classToken]
+    if not proficiencies then return true end  -- Unknown class, assume can equip
+    return proficiencies[equipType] == true
+end
+
+-- Check if armor type is the preferred type for player's class
+local function IsPreferredArmorType(armorType)
+    local _, classToken = UnitClass("player")
+    return CLASS_PREFERRED_ARMOR[classToken] == armorType
+end
+
+-- Get the color for an equipment type based on player's class
+-- Returns: color table {r, g, b} or nil for default color
+local function GetEquipTypeColor(equipType)
+    if not CanPlayerEquipType(equipType) then
+        return COLOR_WORSE  -- Red: cannot equip
+    end
+    if ARMOR_TYPES[equipType] and not IsPreferredArmorType(equipType) then
+        return COLOR_SUBOPTIMAL  -- Yellow: usable but not preferred
+    end
+    return nil  -- Default color (white)
+end
+
+-- Try to extract equipment type from a tooltip line
+-- Returns: slotPart, equipType or nil, nil if not an equipment line
+local function ParseEquipmentLine(text)
+    if not text then return nil, nil end
+    for _, equipType in ipairs(EQUIPMENT_TYPES) do
+        -- Check if line ends with this equipment type
+        local pattern = "(.+)%s+" .. string.gsub(equipType, "%-", "%%-") .. "$"
+        local slotPart = string.match(text, pattern)
+        if slotPart then
+            return slotPart, equipType
+        end
+        -- Also check if line IS just the equipment type (e.g., "Shield")
+        if text == equipType then
+            return nil, equipType
+        end
+    end
+    return nil, nil
+end
+
 -- Map equip location to inventory slot ID for TMOG_CACHE lookup
 local EQUIP_LOC_TO_SLOT = {
     INVTYPE_HEAD = 1,
