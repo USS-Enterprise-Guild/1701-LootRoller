@@ -935,6 +935,67 @@ function LootRoller.UI:RestoreFramePosition(frame)
     if pos then frame:ClearAllPoints(); frame:SetPoint(pos.point, pos.x, pos.y) end
 end
 
+-- Check if item passes class restriction (or has no restriction)
+-- Looks for "Classes: Mage" or "Classes: Mage, Warlock" in tooltip
+local function PassesClassRestriction(itemLink)
+    local lines = GetTooltipLines(itemLink)
+    for _, lineData in ipairs(lines) do
+        local text = lineData.text or ""
+        if string.find(text, "^Classes:") then
+            -- First return of UnitClass is localized display name
+            local localizedClass = UnitClass("player")
+            if not string.find(text, localizedClass) then
+                return false
+            end
+        end
+    end
+    return true  -- No restriction, or player's class is listed
+end
+
+-- Extract equipment type from item tooltip
+local function GetItemEquipType(itemLink)
+    local lines = GetTooltipLines(itemLink)
+    for _, lineData in ipairs(lines) do
+        local _, equipType = ParseEquipmentLine(lineData.text)
+        if equipType then
+            return equipType
+        end
+    end
+    return nil
+end
+
+-- Determine if item should be shown based on filter settings
+local function ShouldShowItem(itemLink)
+    local filterMode = LootRoller.Settings:Get("gearFilter") or "usable"
+
+    -- Everything mode shows all items
+    if filterMode == "everything" then
+        return true
+    end
+
+    -- Check class restrictions from tooltip (e.g., "Classes: Mage")
+    if not PassesClassRestriction(itemLink) then
+        return false
+    end
+
+    -- Check armor/weapon proficiency
+    local equipType = GetItemEquipType(itemLink)
+    if equipType then
+        if not CanPlayerEquipType(equipType) then
+            return false
+        end
+        -- For "preferred" mode, filter non-preferred armor types
+        -- Weapons pass through (no "preferred" weapon concept)
+        if filterMode == "preferred" and ARMOR_TYPES[equipType] then
+            if not IsPreferredArmorType(equipType) then
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
 function LootRoller.UI:ShowItem(itemLink)
     if not LootRoller.Settings:Get("enabled") then return end
     local itemId = GetItemId(itemLink)
