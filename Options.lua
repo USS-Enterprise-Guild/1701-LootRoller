@@ -129,6 +129,64 @@ function LootRoller.Options:CreateOptionsPanel()
     )
     yOffset = yOffset - 50
 
+    -- Gear Filter dropdown
+    local filterLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    filterLabel:SetPoint("TOPLEFT", 20, yOffset)
+    filterLabel:SetText("Show Gear:")
+
+    local filterOptions = {
+        {
+            text = "Preferred Only",
+            value = "preferred",
+            tooltip = "Only shows your best armor type (e.g., Plate for Warriors) and usable weapons"
+        },
+        {
+            text = "All Usable",
+            value = "usable",
+            tooltip = "Shows all gear your class can equip"
+        },
+        {
+            text = "Everything",
+            value = "everything",
+            tooltip = "Shows all gear regardless of class restrictions"
+        },
+    }
+
+    local filterDropdown = CreateFrame("Frame", "LootRollerFilterDropdown", panel, "UIDropDownMenuTemplate")
+    filterDropdown:SetPoint("TOPLEFT", 140, yOffset + 5)
+
+    local function InitializeFilterDropdown()
+        local currentValue = LootRoller.Settings:Get("gearFilter") or "usable"
+        for _, option in ipairs(filterOptions) do
+            local info = {}
+            info.text = option.text
+            info.value = option.value
+            info.checked = (currentValue == option.value)
+            info.tooltipTitle = option.text
+            info.tooltipText = option.tooltip
+            info.tooltipOnButton = true
+            info.func = function()
+                LootRoller.Settings:Set("gearFilter", this.value)
+                UIDropDownMenu_SetText(option.text, filterDropdown)
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+
+    UIDropDownMenu_Initialize(filterDropdown, InitializeFilterDropdown)
+    UIDropDownMenu_SetWidth(120, filterDropdown)
+
+    -- Set initial text
+    local currentFilter = LootRoller.Settings:Get("gearFilter") or "usable"
+    for _, option in ipairs(filterOptions) do
+        if option.value == currentFilter then
+            UIDropDownMenu_SetText(option.text, filterDropdown)
+            break
+        end
+    end
+
+    yOffset = yOffset - 35
+
     -- Multi-item mode dropdown
     local modeLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     modeLabel:SetPoint("TOPLEFT", 20, yOffset)
