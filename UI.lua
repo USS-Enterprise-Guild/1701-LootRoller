@@ -998,6 +998,10 @@ end
 
 function LootRoller.UI:ShowItem(itemLink)
     if not LootRoller.Settings:Get("enabled") then return end
+
+    -- Check gear filter
+    if not ShouldShowItem(itemLink) then return end
+
     local itemId = GetItemId(itemLink)
     if not itemId then LootRoller:Print("Could not parse item link"); return end
     local name = GetItemInfo(itemId)
