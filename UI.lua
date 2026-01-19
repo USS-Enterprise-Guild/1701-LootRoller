@@ -825,20 +825,30 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
         local leftLine = pair.left
         local rightLine = pair.right
 
-        -- Left side (new item - never has enchants)
+        -- Left side (new item)
         local leftText = ""
+        local leftHeight = 13
         if leftLine then
             leftText = leftLine.text or ""
             if leftLine.rightText and leftLine.rightText ~= "" then
                 leftText = leftText .. "  " .. leftLine.rightText
             end
         end
-        local leftColor = GetComparisonColor(leftLine, rightLine, "left")
-        local leftHeight = self:AddStatLine(popup.leftStats, popup.leftLinesPool, popup.leftLineCount, leftText, yOffset, leftColor)
+
+        -- Check if this is an equipment type line (left side)
+        local leftSlot, leftEquipType = ParseEquipmentLine(leftText)
+        if leftEquipType then
+            local equipColor = GetEquipTypeColor(leftEquipType)
+            leftHeight = self:AddStatLineSplit(popup.leftStats, popup.leftLinesPool, popup.leftLineCount, leftSlot, leftEquipType, yOffset, nil, equipColor)
+        else
+            local leftColor = GetComparisonColor(leftLine, rightLine, "left")
+            leftHeight = self:AddStatLine(popup.leftStats, popup.leftLinesPool, popup.leftLineCount, leftText, yOffset, leftColor)
+        end
         popup.leftLineCount = popup.leftLineCount + 1
 
-        -- Right side
+        -- Right side (equipped item)
         local rightText = ""
+        local rightHeight = 13
         if rightLine then
             rightText = rightLine.text or ""
             if rightLine.isEnchant then
@@ -848,8 +858,16 @@ function LootRoller.UI:DisplayItemComparison(popup, newItemLink, equippedItemLin
                 rightText = rightText .. "  " .. rightLine.rightText
             end
         end
-        local rightColor = GetComparisonColor(leftLine, rightLine, "right")
-        local rightHeight = self:AddStatLine(popup.rightStats, popup.rightLinesPool, popup.rightLineCount, rightText, yOffset, rightColor)
+
+        -- Check if this is an equipment type line (right side)
+        local rightSlot, rightEquipType = ParseEquipmentLine(rightText)
+        if rightEquipType then
+            local equipColor = GetEquipTypeColor(rightEquipType)
+            rightHeight = self:AddStatLineSplit(popup.rightStats, popup.rightLinesPool, popup.rightLineCount, rightSlot, rightEquipType, yOffset, nil, equipColor)
+        else
+            local rightColor = GetComparisonColor(leftLine, rightLine, "right")
+            rightHeight = self:AddStatLine(popup.rightStats, popup.rightLinesPool, popup.rightLineCount, rightText, yOffset, rightColor)
+        end
         popup.rightLineCount = popup.rightLineCount + 1
 
         -- Use the taller of the two lines for row height
