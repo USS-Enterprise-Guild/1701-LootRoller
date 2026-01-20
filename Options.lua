@@ -271,13 +271,15 @@ function LootRoller.Options:CreateDropdown(parent, x, y, options, getValue, setV
     local function Initialize()
         local currentValue = getValue()
         for _, option in ipairs(options) do
+            local optionText = option.text
+            local optionValue = option.value
             local info = {}
-            info.text = option.text
-            info.value = option.value
-            info.checked = (currentValue == option.value)
+            info.text = optionText
+            info.value = optionValue
+            info.checked = (currentValue == optionValue)
             info.func = function()
-                setValue(this.value)
-                UIDropDownMenu_SetText(option.text, dropdown)
+                setValue(optionValue)
+                UIDropDownMenu_SetText(optionText, dropdown)
             end
             UIDropDownMenu_AddButton(info)
         end
