@@ -4,6 +4,7 @@
 LootRoller.UI = {}
 
 local activePopups = {}
+local popupFrameCount = 0  -- Counter for unique frame names (never resets)
 local MAX_STACKED_POPUPS = 4
 
 local COLOR_BETTER = {0.1, 1, 0.1}
@@ -485,9 +486,19 @@ local function GetTooltipLines(itemLink)
 end
 
 function LootRoller.UI:CreatePopupFrame()
-    local frameName = "LootRollerPopup" .. (table.getn(activePopups) + 1)
+    popupFrameCount = popupFrameCount + 1
+    local frameName = "LootRollerPopup" .. popupFrameCount
     local frame = CreateFrame("Frame", frameName, UIParent)
     table.insert(UISpecialFrames, frameName)
+    -- Remove from activePopups when hidden (e.g., by ESC key)
+    frame:SetScript("OnHide", function()
+        for i, p in ipairs(activePopups) do
+            if p == this then
+                table.remove(activePopups, i)
+                break
+            end
+        end
+    end)
     frame:SetWidth(520)
     frame:SetHeight(380)
     frame:SetPoint("CENTER", 0, 100)
