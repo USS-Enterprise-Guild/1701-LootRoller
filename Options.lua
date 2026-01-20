@@ -48,6 +48,7 @@ function LootRoller.Options:CreateOptionsPanel()
     if optionsPanel then return optionsPanel end
 
     local panel = CreateFrame("Frame", "LootRollerOptionsPanel", UIParent)
+    table.insert(UISpecialFrames, "LootRollerOptionsPanel")
     panel:SetWidth(350)
     panel:SetHeight(400)
     panel:SetPoint("CENTER", 0, 0)

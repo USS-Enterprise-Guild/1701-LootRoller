@@ -485,7 +485,9 @@ local function GetTooltipLines(itemLink)
 end
 
 function LootRoller.UI:CreatePopupFrame()
-    local frame = CreateFrame("Frame", "LootRollerPopup" .. (table.getn(activePopups) + 1), UIParent)
+    local frameName = "LootRollerPopup" .. (table.getn(activePopups) + 1)
+    local frame = CreateFrame("Frame", frameName, UIParent)
+    table.insert(UISpecialFrames, frameName)
     frame:SetWidth(520)
     frame:SetHeight(380)
     frame:SetPoint("CENTER", 0, 100)
