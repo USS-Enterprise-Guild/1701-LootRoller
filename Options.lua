@@ -158,16 +158,18 @@ function LootRoller.Options:CreateOptionsPanel()
     local function InitializeFilterDropdown()
         local currentValue = LootRoller.Settings:Get("gearFilter") or "usable"
         for _, option in ipairs(filterOptions) do
+            local optionText = option.text
+            local optionValue = option.value
             local info = {}
-            info.text = option.text
-            info.value = option.value
-            info.checked = (currentValue == option.value)
-            info.tooltipTitle = option.text
+            info.text = optionText
+            info.value = optionValue
+            info.checked = (currentValue == optionValue)
+            info.tooltipTitle = optionText
             info.tooltipText = option.tooltip
             info.tooltipOnButton = true
             info.func = function()
-                LootRoller.Settings:Set("gearFilter", this.value)
-                UIDropDownMenu_SetText(option.text, filterDropdown)
+                LootRoller.Settings:Set("gearFilter", optionValue)
+                UIDropDownMenu_SetText(optionText, filterDropdown)
             end
             UIDropDownMenu_AddButton(info)
         end

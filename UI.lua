@@ -956,9 +956,17 @@ end
 local function GetItemEquipType(itemLink)
     local lines = GetTooltipLines(itemLink)
     for _, lineData in ipairs(lines) do
+        -- Check left text (armor types appear here, e.g., "Head Cloth")
         local _, equipType = ParseEquipmentLine(lineData.text)
         if equipType then
             return equipType
+        end
+        -- Check right text (weapon types appear here, e.g., "Sword" on right of "Two-Hand")
+        if lineData.rightText and lineData.rightText ~= "" then
+            _, equipType = ParseEquipmentLine(lineData.rightText)
+            if equipType then
+                return equipType
+            end
         end
     end
     return nil
