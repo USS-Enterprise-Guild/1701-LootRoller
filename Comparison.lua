@@ -34,7 +34,8 @@ local EQUIP_LOC_TO_SLOTS = {
 function LootRoller.Comparison:GetSlotsForItem(itemLink)
     local itemString = LootRoller:ItemStringFromLink(itemLink)
     if not itemString then return nil end
-    local _, _, _, _, _, _, _, _, equipLoc = GetItemInfo(itemString)
+    -- TurtleWoW: name, link, quality, minLevel, type, subType, stackCount, equipLoc, texture
+    local _, _, _, _, _, _, _, equipLoc = GetItemInfo(itemString)
 
     if not equipLoc or equipLoc == "" then
         return nil

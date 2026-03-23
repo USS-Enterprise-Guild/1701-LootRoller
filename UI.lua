@@ -148,13 +148,8 @@ function LootRoller.UI:ShowItem(itemLink)
         return
     end
 
-    local name, link, quality, iLevel, minLevel, itemType, itemSubType, stackCount, equipLoc, texture = GetItemInfo(itemString)
-
-    LootRoller:Debug("GetItemInfo(" .. itemString .. "): name=" .. tostring(name)
-        .. " quality=" .. tostring(quality) .. " iLevel=" .. tostring(iLevel)
-        .. " minLevel=" .. tostring(minLevel) .. " type=" .. tostring(itemType)
-        .. " subType=" .. tostring(itemSubType) .. " stack=" .. tostring(stackCount)
-        .. " equipLoc=" .. tostring(equipLoc) .. " texture=" .. tostring(texture))
+    -- TurtleWoW GetItemInfo returns: name, link, quality, minLevel, type, subType, stackCount, equipLoc, texture
+    local name, link, quality, _, itemType, itemSubType, _, equipLoc, texture = GetItemInfo(itemString)
 
     -- Handle item not cached
     if not name then
