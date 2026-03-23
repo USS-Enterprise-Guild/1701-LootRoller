@@ -35,29 +35,11 @@ SlashCmdList["LOOTROLLER"] = function(msg)
     end
 end
 
--- Test items covering various slots and qualities
-LootRoller.Options.testItems = {
-    "|cffa335ee|Hitem:18816:0:0:0|h[Perdition's Blade]|h|r",       -- Epic dagger (weapon)
-    "|cffa335ee|Hitem:16914:0:0:0|h[Netherwind Robes]|h|r",        -- Epic chest (mage)
-    "|cffa335ee|Hitem:16922:0:0:0|h[Leggings of Transcendence]|h|r", -- Epic legs (priest)
-    "|cffa335ee|Hitem:18564:0:0:0|h[Bindings of the Windseeker]|h|r", -- Epic wrist
-    "|cffa335ee|Hitem:17182:0:0:0|h[Sulfuras, Hand of Ragnaros]|h|r", -- Legendary 2H
-    "|cffa335ee|Hitem:16961:0:0:0|h[Pauldrons of Might]|h|r",      -- Epic shoulders (warrior)
-    "|cffa335ee|Hitem:18203:0:0:0|h[Eskhandar's Right Claw]|h|r",  -- Epic fist weapon
-    "|cffa335ee|Hitem:17069:0:0:0|h[Striker's Mark]|h|r",          -- Epic ranged
-    "|cffa335ee|Hitem:18821:0:0:0|h[Quick Strike Ring]|h|r",       -- Epic ring
-}
-LootRoller.Options.testIndex = 0
+
 
 function LootRoller.Options:ShowTestPopup()
-    self.testIndex = self.testIndex + 1
-    if self.testIndex > table.getn(self.testItems) then
-        self.testIndex = 1
-    end
-
-    local testLink = self.testItems[self.testIndex]
     LootRoller:Print("Showing test popup...")
-    LootRoller.UI:ShowItem(testLink)
+    LootRoller.UI:ShowTestItem()
 end
 
 local optionsPanel = nil
@@ -66,6 +48,7 @@ function LootRoller.Options:CreateOptionsPanel()
     if optionsPanel then return optionsPanel end
 
     local panel = CreateFrame("Frame", "LootRollerOptionsPanel", UIParent)
+    table.insert(UISpecialFrames, "LootRollerOptionsPanel")
     panel:SetWidth(350)
     panel:SetHeight(400)
     panel:SetPoint("CENTER", 0, 0)
@@ -146,6 +129,66 @@ function LootRoller.Options:CreateOptionsPanel()
         function(value) LootRoller.Settings:Set("autoHideTimeout", value) end
     )
     yOffset = yOffset - 50
+
+    -- Gear Filter dropdown
+    local filterLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    filterLabel:SetPoint("TOPLEFT", 20, yOffset)
+    filterLabel:SetText("Show Gear:")
+
+    local filterOptions = {
+        {
+            text = "Preferred Only",
+            value = "preferred",
+            tooltip = "Only shows your best armor type (e.g., Plate for Warriors) and usable weapons"
+        },
+        {
+            text = "All Usable",
+            value = "usable",
+            tooltip = "Shows all gear your class can equip"
+        },
+        {
+            text = "Everything",
+            value = "everything",
+            tooltip = "Shows all gear regardless of class restrictions"
+        },
+    }
+
+    local filterDropdown = CreateFrame("Frame", "LootRollerFilterDropdown", panel, "UIDropDownMenuTemplate")
+    filterDropdown:SetPoint("TOPLEFT", 140, yOffset + 5)
+
+    local function InitializeFilterDropdown()
+        local currentValue = LootRoller.Settings:Get("gearFilter") or "usable"
+        for _, option in ipairs(filterOptions) do
+            local optionText = option.text
+            local optionValue = option.value
+            local info = {}
+            info.text = optionText
+            info.value = optionValue
+            info.checked = (currentValue == optionValue)
+            info.tooltipTitle = optionText
+            info.tooltipText = option.tooltip
+            info.tooltipOnButton = true
+            info.func = function()
+                LootRoller.Settings:Set("gearFilter", optionValue)
+                UIDropDownMenu_SetText(optionText, filterDropdown)
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+
+    UIDropDownMenu_Initialize(filterDropdown, InitializeFilterDropdown)
+    UIDropDownMenu_SetWidth(120, filterDropdown)
+
+    -- Set initial text
+    local currentFilter = LootRoller.Settings:Get("gearFilter") or "usable"
+    for _, option in ipairs(filterOptions) do
+        if option.value == currentFilter then
+            UIDropDownMenu_SetText(option.text, filterDropdown)
+            break
+        end
+    end
+
+    yOffset = yOffset - 35
 
     -- Multi-item mode dropdown
     local modeLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -228,13 +271,15 @@ function LootRoller.Options:CreateDropdown(parent, x, y, options, getValue, setV
     local function Initialize()
         local currentValue = getValue()
         for _, option in ipairs(options) do
+            local optionText = option.text
+            local optionValue = option.value
             local info = {}
-            info.text = option.text
-            info.value = option.value
-            info.checked = (currentValue == option.value)
+            info.text = optionText
+            info.value = optionValue
+            info.checked = (currentValue == optionValue)
             info.func = function()
-                setValue(this.value)
-                UIDropDownMenu_SetText(option.text, dropdown)
+                setValue(optionValue)
+                UIDropDownMenu_SetText(optionText, dropdown)
             end
             UIDropDownMenu_AddButton(info)
         end

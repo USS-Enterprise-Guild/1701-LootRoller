@@ -11,6 +11,7 @@ local defaults = {
     soundEnabled = true,
     autoHideTimeout = 60,
     multiItemMode = "replace",  -- "replace" or "stack"
+    gearFilter = "usable",  -- "preferred", "usable", or "everything"
     debug = false,
     framePosition = nil,  -- saved {point, x, y}
 }

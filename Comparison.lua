@@ -3,6 +3,19 @@
 
 LootRoller.Comparison = {}
 
+-- Helper: Extract hyperlink portion from item link (for SetHyperlink)
+local function ExtractHyperlink(itemLink)
+    if not itemLink then return nil end
+    local _, _, hyperlink = string.find(itemLink, "|H(item:%d+[^|]*)|h")
+    return hyperlink or itemLink
+end
+
+-- Helper: Pattern match for Lua 5.0 (returns first capture)
+local function PatternMatch(text, pattern)
+    local _, _, capture = string.find(text, pattern)
+    return capture
+end
+
 -- Map WoW equip locations to inventory slot IDs
 local EQUIP_LOC_TO_SLOTS = {
     INVTYPE_HEAD = {1},
@@ -31,17 +44,34 @@ local EQUIP_LOC_TO_SLOTS = {
     INVTYPE_RELIC = {18},
 }
 
-function LootRoller.Comparison:GetSlotsForItem(itemLink)
-    local itemString = LootRoller:ItemStringFromLink(itemLink)
-    if not itemString then return nil end
-    -- TurtleWoW: name, link, quality, minLevel, type, subType, stackCount, equipLoc, texture
-    local _, _, _, _, _, _, _, equipLoc = GetItemInfo(itemString)
+-- TurtleWoW GetItemInfo return order:
+-- 1=name, 2=link, 3=quality, 4=itemLevel, 5=itemType, 6=itemSubType, 7=stackCount, 8=equipLoc, 9=texture
+function LootRoller.Comparison:GetItemInfoTurtle(itemId)
+    local name, link, quality, itemLevel, itemType, itemSubType, stackCount, equipLoc, texture = GetItemInfo(itemId)
+    return {
+        name = name,
+        link = link,
+        quality = quality,
+        itemLevel = itemLevel,
+        itemType = itemType,
+        itemSubType = itemSubType,
+        stackCount = stackCount,
+        equipLoc = equipLoc,
+        texture = texture,
+    }
+end
 
-    if not equipLoc or equipLoc == "" then
+function LootRoller.Comparison:GetSlotsForItem(itemLink)
+    local _, _, id = string.find(itemLink, "item:(%d+)")
+    if not id then return nil end
+
+    local info = self:GetItemInfoTurtle(tonumber(id))
+
+    if not info.equipLoc or info.equipLoc == "" then
         return nil
     end
 
-    return EQUIP_LOC_TO_SLOTS[equipLoc]
+    return EQUIP_LOC_TO_SLOTS[info.equipLoc]
 end
 
 function LootRoller.Comparison:GetEquippedItemLink(slotId)
@@ -107,12 +137,14 @@ function LootRoller.Comparison:ExtractStats(itemLink)
         return {}
     end
 
-    local itemString = LootRoller:ItemStringFromLink(itemLink)
-    if not itemString then return {} end
+    -- Extract the hyperlink portion for SetHyperlink
+    local hyperlink = ExtractHyperlink(itemLink)
+    if not hyperlink then
+        return {}
+    end
 
     scanTooltip:ClearLines()
-    scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
-    scanTooltip:SetHyperlink(itemString)
+    scanTooltip:SetHyperlink(hyperlink)
 
     local stats = {}
     local numLines = scanTooltip:NumLines()
@@ -123,7 +155,7 @@ function LootRoller.Comparison:ExtractStats(itemLink)
             local text = leftText:GetText()
             if text then
                 for _, patternInfo in ipairs(STAT_PATTERNS) do
-                    local value = string.match(text, patternInfo.pattern)
+                    local value = PatternMatch(text, patternInfo.pattern)
                     if value then
                         stats[patternInfo.stat] = (stats[patternInfo.stat] or 0) + tonumber(value)
                     end
