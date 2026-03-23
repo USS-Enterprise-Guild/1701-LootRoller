@@ -1017,11 +1017,14 @@ local function ShouldShowItem(itemLink)
     return true
 end
 
-function LootRoller.UI:ShowItem(itemLink)
+function LootRoller.UI:ShowItem(itemLink, skipFilter)
     if not LootRoller.Settings:Get("enabled") then return end
 
-    -- Check gear filter
-    if not ShouldShowItem(itemLink) then return end
+    -- Check gear filter (skipped for test items)
+    if not skipFilter and not ShouldShowItem(itemLink) then
+        LootRoller:Debug("Item filtered by gear filter")
+        return
+    end
 
     local itemId = GetItemId(itemLink)
     if not itemId then LootRoller:Print("Could not parse item link"); return end
@@ -1173,7 +1176,7 @@ function LootRoller.UI:ShowTestItem()
                 local n, l = GetItemInfo(this.itemId)
                 if n then
                     LootRoller:Print("Testing with: " .. l)
-                    LootRoller.UI:ShowItem(l)
+                    LootRoller.UI:ShowItem(l, true)
                     this:SetScript("OnUpdate", nil)
                 elseif this.attempts > 10 then
                     LootRoller:Print("Failed to load item " .. this.itemId .. " after 5 seconds")
@@ -1185,5 +1188,5 @@ function LootRoller.UI:ShowTestItem()
     end
 
     LootRoller:Print("Testing with: " .. link)
-    self:ShowItem(link)
+    self:ShowItem(link, true)
 end
