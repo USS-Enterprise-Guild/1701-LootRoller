@@ -110,6 +110,7 @@ function LootRoller.Comparison:ExtractStats(itemLink)
     if not itemString then return {} end
 
     scanTooltip:ClearLines()
+    scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
     scanTooltip:SetHyperlink(itemString)
 
     local stats = {}

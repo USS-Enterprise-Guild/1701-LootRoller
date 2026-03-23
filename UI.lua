@@ -148,7 +148,13 @@ function LootRoller.UI:ShowItem(itemLink)
         return
     end
 
-    local name, link, quality, _, _, itemType, itemSubType, _, equipLoc, texture = GetItemInfo(itemString)
+    local name, link, quality, iLevel, minLevel, itemType, itemSubType, stackCount, equipLoc, texture = GetItemInfo(itemString)
+
+    LootRoller:Debug("GetItemInfo(" .. itemString .. "): name=" .. tostring(name)
+        .. " quality=" .. tostring(quality) .. " iLevel=" .. tostring(iLevel)
+        .. " minLevel=" .. tostring(minLevel) .. " type=" .. tostring(itemType)
+        .. " subType=" .. tostring(itemSubType) .. " stack=" .. tostring(stackCount)
+        .. " equipLoc=" .. tostring(equipLoc) .. " texture=" .. tostring(texture))
 
     -- Handle item not cached
     if not name then
@@ -199,7 +205,7 @@ function LootRoller.UI:ShowItem(itemLink)
     popup.icon:SetTexture(texture)
 
     -- Set subtext
-    popup.itemSubtext:SetText(itemType .. " - " .. (itemSubType or ""))
+    popup.itemSubtext:SetText((itemType or "") .. " - " .. (itemSubType or ""))
 
     -- Calculate and display stat comparisons
     local comparisons = LootRoller.Comparison:CompareItems(itemLink)
