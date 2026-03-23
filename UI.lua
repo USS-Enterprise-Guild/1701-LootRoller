@@ -142,7 +142,13 @@ end
 function LootRoller.UI:ShowItem(itemLink)
     if not LootRoller.Settings:Get("enabled") then return end
 
-    local name, link, quality, _, _, itemType, itemSubType, _, equipLoc, texture = GetItemInfo(itemLink)
+    local itemString = LootRoller:ItemStringFromLink(itemLink)
+    if not itemString then
+        LootRoller:Debug("ShowItem: could not extract item string from link")
+        return
+    end
+
+    local name, link, quality, _, _, itemType, itemSubType, _, equipLoc, texture = GetItemInfo(itemString)
 
     -- Handle item not cached
     if not name then

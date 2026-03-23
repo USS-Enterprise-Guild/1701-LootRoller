@@ -3,7 +3,7 @@
 
 LootRoller = {}
 LootRoller.name = "LootRoller"
-LootRoller.version = "1.0.0"
+LootRoller.version = "1.0.1"
 
 -- Create main event frame
 local frame = CreateFrame("Frame")
@@ -40,4 +40,12 @@ function LootRoller:Debug(msg)
     if LootRoller_Settings and LootRoller_Settings.debug then
         DEFAULT_CHAT_FRAME:AddMessage("|cff888888LootRoller Debug:|r " .. msg)
     end
+end
+
+-- Extract "item:id:enchant:suffix:unique" from a full hyperlink string.
+-- GetItemInfo and SetHyperlink expect this format, not the full colored hyperlink.
+function LootRoller:ItemStringFromLink(link)
+    if not link then return nil end
+    local _, _, itemString = string.find(link, "(item:%d+:%d+:%d+:%d+)")
+    return itemString
 end
