@@ -35,12 +35,27 @@ SlashCmdList["LOOTROLLER"] = function(msg)
     end
 end
 
-function LootRoller.Options:ShowTestPopup()
-    -- Test with a known item (Perdition's Blade as example)
-    local testItemId = 18816  -- Perdition's Blade
-    local testLink = "|cffff8000|Hitem:18816:0:0:0|h[Perdition's Blade]|h|r"
+-- Test items covering various slots and qualities
+LootRoller.Options.testItems = {
+    "|cffa335ee|Hitem:18816:0:0:0|h[Perdition's Blade]|h|r",       -- Epic dagger (weapon)
+    "|cffa335ee|Hitem:16914:0:0:0|h[Netherwind Robes]|h|r",        -- Epic chest (mage)
+    "|cffa335ee|Hitem:16922:0:0:0|h[Leggings of Transcendence]|h|r", -- Epic legs (priest)
+    "|cffa335ee|Hitem:18564:0:0:0|h[Bindings of the Windseeker]|h|r", -- Epic wrist
+    "|cffa335ee|Hitem:17182:0:0:0|h[Sulfuras, Hand of Ragnaros]|h|r", -- Legendary 2H
+    "|cffa335ee|Hitem:16961:0:0:0|h[Pauldrons of Might]|h|r",      -- Epic shoulders (warrior)
+    "|cffa335ee|Hitem:18203:0:0:0|h[Eskhandar's Right Claw]|h|r",  -- Epic fist weapon
+    "|cffa335ee|Hitem:17069:0:0:0|h[Striker's Mark]|h|r",          -- Epic ranged
+    "|cffa335ee|Hitem:18821:0:0:0|h[Quick Strike Ring]|h|r",       -- Epic ring
+}
+LootRoller.Options.testIndex = 0
 
-    -- Try to show the item
+function LootRoller.Options:ShowTestPopup()
+    self.testIndex = self.testIndex + 1
+    if self.testIndex > table.getn(self.testItems) then
+        self.testIndex = 1
+    end
+
+    local testLink = self.testItems[self.testIndex]
     LootRoller:Print("Showing test popup...")
     LootRoller.UI:ShowItem(testLink)
 end

@@ -3,7 +3,7 @@
 
 LootRoller = {}
 LootRoller.name = "LootRoller"
-LootRoller.version = "1.0.2"
+LootRoller.version = "1.1.0"
 
 -- Create main event frame
 local frame = CreateFrame("Frame")

@@ -10,6 +10,9 @@ local MAX_STACKED_POPUPS = 4
 local COLOR_GAIN = {0, 1, 0}      -- green
 local COLOR_LOSS = {1, 0, 0}      -- red
 local COLOR_NEUTRAL = {0.5, 0.5, 0.5}  -- gray
+local COLOR_STAT = {1, 0.82, 0}   -- gold for stat labels
+local COLOR_HEADER = {1, 0.82, 0} -- gold for headers
+local COLOR_ITEM_NAME = {0.7, 0.7, 0.7} -- gray for equipped item names
 
 -- Quality colors (same as WoW item quality)
 local QUALITY_COLORS = {
@@ -21,9 +24,14 @@ local QUALITY_COLORS = {
     [5] = {1, 0.5, 0},      -- Legendary (orange)
 }
 
+local FRAME_WIDTH = 460
+local LEFT_COL_WIDTH = 200
+local LINE_HEIGHT = 12
+local SECTION_GAP = 6
+
 function LootRoller.UI:CreatePopupFrame()
     local frame = CreateFrame("Frame", "LootRollerPopup" .. (table.getn(activePopups) + 1), UIParent)
-    frame:SetWidth(280)
+    frame:SetWidth(FRAME_WIDTH)
     frame:SetHeight(200)
     frame:SetPoint("CENTER", 0, 100)
     frame:SetFrameStrata("DIALOG")
@@ -76,12 +84,27 @@ function LootRoller.UI:CreatePopupFrame()
     itemSubtext:SetTextColor(0.7, 0.7, 0.7)
     frame.itemSubtext = itemSubtext
 
-    -- Stat diff container
-    local statFrame = CreateFrame("Frame", nil, frame)
-    statFrame:SetPoint("TOPLEFT", 15, -65)
-    statFrame:SetPoint("TOPRIGHT", -15, -65)
-    statFrame:SetHeight(90)
-    frame.statFrame = statFrame
+    -- Left column container (rolled item stats)
+    local leftFrame = CreateFrame("Frame", nil, frame)
+    leftFrame:SetPoint("TOPLEFT", 15, -65)
+    leftFrame:SetWidth(LEFT_COL_WIDTH)
+    leftFrame:SetHeight(90)
+    frame.leftFrame = leftFrame
+
+    -- Right column container (equipped item comparison)
+    local rightFrame = CreateFrame("Frame", nil, frame)
+    rightFrame:SetPoint("TOPLEFT", leftFrame, "TOPRIGHT", 10, 0)
+    rightFrame:SetPoint("RIGHT", frame, "RIGHT", -15, 0)
+    rightFrame:SetHeight(90)
+    frame.rightFrame = rightFrame
+
+    -- Divider line between columns
+    local divider = frame:CreateTexture(nil, "ARTWORK")
+    divider:SetWidth(1)
+    divider:SetPoint("TOPLEFT", leftFrame, "TOPRIGHT", 4, 0)
+    divider:SetPoint("BOTTOMLEFT", leftFrame, "BOTTOMRIGHT", 4, 0)
+    divider:SetTexture(1, 1, 1, 0.15)
+    frame.divider = divider
 
     -- Button container
     local buttonFrame = CreateFrame("Frame", nil, frame)
@@ -202,9 +225,10 @@ function LootRoller.UI:ShowItem(itemLink)
     -- Set subtext
     popup.itemSubtext:SetText((itemType or "") .. " - " .. (itemSubType or ""))
 
-    -- Calculate and display stat comparisons
+    -- Get rolled item stats and equipped item comparisons
+    local announcedStats = LootRoller.Comparison:ExtractStats(itemLink)
     local comparisons = LootRoller.Comparison:CompareItems(itemLink)
-    self:DisplayStats(popup, comparisons)
+    self:DisplayStats(popup, announcedStats, comparisons)
 
     -- Position for stacking
     self:PositionPopup(popup)
@@ -248,66 +272,148 @@ function LootRoller.UI:PositionPopup(popup)
     end
 end
 
-function LootRoller.UI:DisplayStats(popup, comparisons)
-    -- Clear existing stat lines
-    if popup.statLines then
-        for _, line in ipairs(popup.statLines) do
-            line:Hide()
-        end
+function LootRoller.UI:ClearFontStrings(list)
+    if not list then return end
+    for _, obj in ipairs(list) do
+        obj:Hide()
+        obj:SetText("")
     end
+end
+
+function LootRoller.UI:DisplayStats(popup, announcedStats, comparisons)
+    -- Clear existing elements
+    self:ClearFontStrings(popup.statLines)
     popup.statLines = {}
 
-    local yOffset = 0
-    local columnWidth = 130
+    -- === LEFT COLUMN: Rolled item stats ===
+    local leftY = 0
+
+    local leftHeader = popup.leftFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    leftHeader:SetPoint("TOPLEFT", 0, leftY)
+    leftHeader:SetText("Item Stats")
+    leftHeader:SetTextColor(COLOR_HEADER[1], COLOR_HEADER[2], COLOR_HEADER[3])
+    table.insert(popup.statLines, leftHeader)
+    leftY = leftY - LINE_HEIGHT - 2
+
+    -- Sort stats for consistent display
+    local sortedStats = {}
+    for stat, value in pairs(announcedStats) do
+        table.insert(sortedStats, {stat = stat, value = value})
+    end
+    table.sort(sortedStats, function(a, b)
+        return a.value > b.value
+    end)
+
+    for _, entry in ipairs(sortedStats) do
+        local line = popup.leftFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        line:SetPoint("TOPLEFT", 0, leftY)
+        line:SetText("+" .. entry.value .. " " .. entry.stat)
+        line:SetTextColor(1, 1, 1)
+        table.insert(popup.statLines, line)
+        leftY = leftY - LINE_HEIGHT
+    end
+
+    if table.getn(sortedStats) == 0 then
+        local noStats = popup.leftFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        noStats:SetPoint("TOPLEFT", 0, leftY)
+        noStats:SetText("(no stats)")
+        noStats:SetTextColor(COLOR_NEUTRAL[1], COLOR_NEUTRAL[2], COLOR_NEUTRAL[3])
+        table.insert(popup.statLines, noStats)
+        leftY = leftY - LINE_HEIGHT
+    end
+
+    -- === RIGHT COLUMN: Equipped item(s) with comparison ===
+    local rightY = 0
 
     for i, comparison in ipairs(comparisons) do
-        -- Column header (vs Equipped 1, vs Equipped 2, or vs Empty)
-        local headerText
+        -- Slot header with equipped item name
+        local slotLabel
         if comparison.isEmpty then
-            headerText = "vs Empty Slot"
-        elseif table.getn(comparisons) > 1 then
-            headerText = "vs Slot " .. i
+            slotLabel = "Empty Slot"
         else
-            headerText = "vs Equipped"
-        end
-
-        local xOffset = (i - 1) * columnWidth
-
-        local header = popup.statFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        header:SetPoint("TOPLEFT", xOffset, yOffset)
-        header:SetText(headerText)
-        header:SetTextColor(1, 0.82, 0)
-        table.insert(popup.statLines, header)
-
-        yOffset = yOffset - 14
-
-        -- Stat diff lines
-        for _, statDiff in ipairs(comparison.diff) do
-            local line = popup.statFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            line:SetPoint("TOPLEFT", xOffset, yOffset)
-
-            local prefix = statDiff.value > 0 and "+" or ""
-            line:SetText(prefix .. statDiff.value .. " " .. statDiff.stat)
-
-            if statDiff.isGain then
-                line:SetTextColor(COLOR_GAIN[1], COLOR_GAIN[2], COLOR_GAIN[3])
-            else
-                line:SetTextColor(COLOR_LOSS[1], COLOR_LOSS[2], COLOR_LOSS[3])
+            local equippedName = ""
+            if comparison.equippedLink then
+                local eItemString = LootRoller:ItemStringFromLink(comparison.equippedLink)
+                if eItemString then
+                    equippedName = GetItemInfo(eItemString) or "Unknown"
+                end
             end
 
-            table.insert(popup.statLines, line)
-            yOffset = yOffset - 12
+            if table.getn(comparisons) > 1 then
+                slotLabel = "Slot " .. i .. ": " .. equippedName
+            else
+                slotLabel = equippedName
+            end
         end
 
-        -- Reset yOffset for next column
+        local header = popup.rightFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        header:SetPoint("TOPLEFT", 0, rightY)
+        header:SetText(slotLabel)
+        header:SetTextColor(COLOR_HEADER[1], COLOR_HEADER[2], COLOR_HEADER[3])
+        table.insert(popup.statLines, header)
+        rightY = rightY - LINE_HEIGHT - 2
+
+        if comparison.isEmpty then
+            local upgradeLine = popup.rightFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            upgradeLine:SetPoint("TOPLEFT", 0, rightY)
+            upgradeLine:SetText("(upgrade)")
+            upgradeLine:SetTextColor(COLOR_GAIN[1], COLOR_GAIN[2], COLOR_GAIN[3])
+            table.insert(popup.statLines, upgradeLine)
+            rightY = rightY - LINE_HEIGHT
+        else
+            -- Show stat diffs
+            for _, statDiff in ipairs(comparison.diff) do
+                local line = popup.rightFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                line:SetPoint("TOPLEFT", 0, rightY)
+
+                local prefix = statDiff.value > 0 and "+" or ""
+                line:SetText(prefix .. statDiff.value .. " " .. statDiff.stat)
+
+                if statDiff.isGain then
+                    line:SetTextColor(COLOR_GAIN[1], COLOR_GAIN[2], COLOR_GAIN[3])
+                else
+                    line:SetTextColor(COLOR_LOSS[1], COLOR_LOSS[2], COLOR_LOSS[3])
+                end
+
+                table.insert(popup.statLines, line)
+                rightY = rightY - LINE_HEIGHT
+            end
+
+            if table.getn(comparison.diff) == 0 then
+                local sameLine = popup.rightFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                sameLine:SetPoint("TOPLEFT", 0, rightY)
+                sameLine:SetText("(identical stats)")
+                sameLine:SetTextColor(COLOR_NEUTRAL[1], COLOR_NEUTRAL[2], COLOR_NEUTRAL[3])
+                table.insert(popup.statLines, sameLine)
+                rightY = rightY - LINE_HEIGHT
+            end
+        end
+
+        -- Add gap between slots
         if i < table.getn(comparisons) then
-            yOffset = 0
+            rightY = rightY - SECTION_GAP
         end
     end
 
-    -- Adjust frame height based on content
-    local contentHeight = math.max(80, -yOffset + 20)
-    popup:SetHeight(contentHeight + 110)  -- add space for header and buttons
+    if table.getn(comparisons) == 0 then
+        local noSlot = popup.rightFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        noSlot:SetPoint("TOPLEFT", 0, rightY)
+        noSlot:SetText("(not equippable)")
+        noSlot:SetTextColor(COLOR_NEUTRAL[1], COLOR_NEUTRAL[2], COLOR_NEUTRAL[3])
+        table.insert(popup.statLines, noSlot)
+        rightY = rightY - LINE_HEIGHT
+    end
+
+    -- Adjust frame height based on tallest column
+    local leftHeight = -leftY
+    local rightHeight = -rightY
+    local contentHeight = math.max(leftHeight, rightHeight, 40)
+    popup:SetHeight(contentHeight + 120)  -- header + buttons + padding
+
+    -- Update divider height
+    popup.divider:ClearAllPoints()
+    popup.divider:SetPoint("TOPLEFT", popup.leftFrame, "TOPRIGHT", 4, 0)
+    popup.divider:SetPoint("BOTTOMLEFT", popup.leftFrame, "TOPRIGHT", 4, -contentHeight)
 end
 
 function LootRoller.UI:StartAutoHideTimer(popup, seconds)

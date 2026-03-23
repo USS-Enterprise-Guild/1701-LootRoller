@@ -2,7 +2,7 @@
 ## Title: LootRoller
 ## Notes: RollFor companion - shows item comparison and quick roll buttons
 ## Author: Kilaire
-## Version: 1.0.2
+## Version: 1.1.0
 ## SavedVariables: LootRoller_Settings
 
 LootRoller.lua
