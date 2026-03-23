@@ -144,6 +144,7 @@ function LootRoller.Comparison:ExtractStats(itemLink)
     end
 
     scanTooltip:ClearLines()
+    scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
     scanTooltip:SetHyperlink(hyperlink)
 
     local stats = {}
